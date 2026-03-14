@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.router import api_router
-from app.core.config import DEV_CORS_ORIGINS, ensure_storage_dirs
+from app.core.config import CORS_ORIGINS, ensure_storage_dirs
 from app.services.cleanup_service import cleanup_service
 from app.services.rate_limit_service import RateLimitDecision, rate_limit_service
 
@@ -102,7 +102,7 @@ async def add_security_headers(request: Request, call_next):
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=DEV_CORS_ORIGINS,
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

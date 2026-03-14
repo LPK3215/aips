@@ -1,22 +1,86 @@
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$configPath = Join-Path $repoRoot "aips.settings.json"
-
-if (-not (Test-Path $configPath)) {
-  throw "Startup config was not found: $configPath"
-}
-
-$settings = Get-Content $configPath -Raw | ConvertFrom-Json
-$backendHost = [string]$settings.backend.host
-$backendPort = [int]$settings.backend.port
-$frontendHost = [string]$settings.frontend.host
-$frontendPort = [int]$settings.frontend.port
-$openBrowser = [bool]$settings.launcher.open_browser
-
 $backendDir = Join-Path $repoRoot "aips-api"
 $frontendDir = Join-Path $repoRoot "aips-web"
+$backendEnvPath = Join-Path $backendDir ".env"
+$frontendEnvPath = Join-Path $frontendDir ".env"
 $pythonExe = Join-Path $backendDir ".venv\\Scripts\\python.exe"
+
+function Read-DotEnvFile([string]$Path) {
+  $values = @{}
+
+  if (-not (Test-Path $Path)) {
+    return $values
+  }
+
+  foreach ($rawLine in Get-Content $Path) {
+    $line = $rawLine.Trim()
+    if (-not $line -or $line.StartsWith("#")) {
+      continue
+    }
+
+    if ($line.StartsWith("export ")) {
+      $line = $line.Substring(7).Trim()
+    }
+
+    $separatorIndex = $line.IndexOf("=")
+    if ($separatorIndex -lt 1) {
+      continue
+    }
+
+    $key = $line.Substring(0, $separatorIndex).Trim()
+    $value = $line.Substring($separatorIndex + 1).Trim()
+    if (-not $key) {
+      continue
+    }
+
+    if (
+      ($value.Length -ge 2) -and
+      (
+        ($value.StartsWith('"') -and $value.EndsWith('"')) -or
+        ($value.StartsWith("'") -and $value.EndsWith("'"))
+      )
+    ) {
+      $value = $value.Substring(1, $value.Length - 2)
+    }
+
+    $values[$key] = $value
+  }
+
+  return $values
+}
+
+function Read-DotEnvString($Values, [string]$Key, [string]$DefaultValue) {
+  if ($Values.ContainsKey($Key)) {
+    $value = [string]$Values[$Key]
+    if ($value.Trim()) {
+      return $value.Trim()
+    }
+  }
+
+  return $DefaultValue
+}
+
+function Read-DotEnvInt($Values, [string]$Key, [int]$DefaultValue) {
+  if ($Values.ContainsKey($Key)) {
+    $value = 0
+    if ([int]::TryParse([string]$Values[$Key], [ref]$value) -and $value -gt 0) {
+      return $value
+    }
+  }
+
+  return $DefaultValue
+}
+
+$backendEnv = Read-DotEnvFile $backendEnvPath
+$frontendEnv = Read-DotEnvFile $frontendEnvPath
+$backendHost = Read-DotEnvString $backendEnv "AIPS_API_HOST" "127.0.0.1"
+$backendPort = Read-DotEnvInt $backendEnv "AIPS_API_PORT" 8000
+$frontendHost = Read-DotEnvString $frontendEnv "VITE_APP_HOST" "127.0.0.1"
+$frontendPort = Read-DotEnvInt $frontendEnv "VITE_APP_PORT" 5173
+$frontendApiProxyTarget = Read-DotEnvString $frontendEnv "VITE_API_PROXY_TARGET" "http://$backendHost`:$backendPort"
+$backendBaseUrl = "http://$backendHost`:$backendPort"
 
 if (-not (Test-Path $pythonExe)) {
   throw "Backend Python was not found: $pythonExe. Create aips-api\\.venv and install dependencies first."
@@ -42,6 +106,10 @@ if (Test-PortBusy $backendPort) {
 
 if (Test-PortBusy $frontendPort) {
   throw "Frontend port $frontendPort is already in use. Stop the existing process first."
+}
+
+if ($frontendApiProxyTarget -ne $backendBaseUrl) {
+  Write-Warning "VITE_API_PROXY_TARGET is $frontendApiProxyTarget, but the backend will start on $backendBaseUrl."
 }
 
 $shellExe = (Get-Command powershell.exe).Source
@@ -72,8 +140,3 @@ Write-Host "Backend: http://$backendHost`:$backendPort"
 Write-Host "Frontend: http://$frontendHost`:$frontendPort"
 Write-Host "Backend window PID: $($backendProcess.Id)"
 Write-Host "Frontend window PID: $($frontendProcess.Id)"
-
-if ($openBrowser) {
-  Start-Sleep -Seconds 3
-  Start-Process "http://$frontendHost`:$frontendPort"
-}

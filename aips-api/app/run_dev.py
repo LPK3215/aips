@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import uvicorn
 
-from app.core.config import DEV_BACKEND_HOST, DEV_BACKEND_PORT
+from app.core.config import API_HOST, API_PORT
 
 
 def main() -> None:
     uvicorn.run(
         "app.main:app",
-        host=DEV_BACKEND_HOST,
-        port=DEV_BACKEND_PORT,
+        host=API_HOST,
+        port=API_PORT,
         reload=True,
     )
 

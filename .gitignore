@@ -6,6 +6,8 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .coverage
+aips-api/.env
+aips-web/.env
 aips-api/storage/uploads/
 aips-api/storage/results/
 aips-api/storage/tasks/

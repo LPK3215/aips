@@ -22,19 +22,65 @@ aips-web/  Vue 工作台和结果页
 docs/      AIPS 项目文档
 ```
 
-## 启动 aips-api
+## 一键启动
+
+本地开发现在使用前后端各自独立的 `.env` 配置文件：
+
+- 后端配置：[aips-api/.env](/d:/Develop/SourceCode/pythoncode/aips/aips-api/.env)
+- 前端配置：[aips-web/.env](/d:/Develop/SourceCode/pythoncode/aips/aips-web/.env)
+
+默认配置：
+
+- 后端：`http://127.0.0.1:8000`
+- 前端：`http://127.0.0.1:5173`
+
+首次启动前需要先安装依赖：
 
 ```powershell
 cd aips-api
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-uvicorn app.main:app --reload
+
+cd ..\aips-web
+npm install
+```
+
+之后回到项目根目录，直接运行一个启动文件即可：
+
+```powershell
+.\start-aips.ps1
+```
+
+或者直接双击：
+
+```text
+start-aips.bat
+```
+
+脚本会自动：
+
+- 读取 `aips-api/.env`
+- 读取 `aips-web/.env`
+- 启动 `aips-api`
+- 启动 `aips-web`
+- 由前端开发服务按 `VITE_DEV_OPEN_BROWSER` 自动打开浏览器
+
+## 单独启动 aips-api
+
+```powershell
+cd aips-api
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python -m app.run_dev
 ```
 
 默认地址：`http://127.0.0.1:8000`
 
-## 启动 aips-web
+`python -m app.run_dev` 会自动读取 [aips-api/.env](/d:/Develop/SourceCode/pythoncode/aips/aips-api/.env) 中的后端主机、端口和前端 CORS 对应配置。
+
+## 单独启动 aips-web
 
 ```powershell
 cd aips-web
@@ -44,7 +90,7 @@ npm run dev
 
 默认地址：`http://127.0.0.1:5173`
 
-前端开发环境已配置 `/api` 代理到后端 `8000` 端口。
+`npm run dev` 和 `npm run build` 会自动读取 [aips-web/.env](/d:/Develop/SourceCode/pythoncode/aips/aips-web/.env)，并按其中配置设置前端地址、开发代理和 API 基地址。
 
 ## 当前已实现
 

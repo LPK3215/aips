@@ -17,6 +17,44 @@
 
 ## 2. 本地启动
 
+### 2.1 推荐方式：根目录一键启动
+
+当前仓库已经支持通过子项目 `.env` 自动加载配置。
+
+前端配置文件：
+
+- [aips-web/.env](/d:/Develop/SourceCode/pythoncode/aips/aips-web/.env)
+
+后端配置文件：
+
+- [aips-api/.env](/d:/Develop/SourceCode/pythoncode/aips/aips-api/.env)
+
+首次准备依赖：
+
+```powershell
+cd aips-api
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+
+cd ..\aips-web
+npm install
+```
+
+之后在项目根目录直接执行：
+
+```powershell
+.\start-aips.ps1
+```
+
+或者双击：
+
+```text
+start-aips.bat
+```
+
+### 2.2 仅启动前端
+
 ```powershell
 cd aips-web
 npm install
@@ -30,7 +68,25 @@ npm run dev
 注意：
 
 - 本地调试前，建议先启动 `aips-api`
-- 当前 Vite 代理目标固定为 `http://127.0.0.1:8000`
+- 当前 Vite 会自动读取 [aips-web/.env](/d:/Develop/SourceCode/pythoncode/aips/aips-web/.env)
+- `/api` 代理目标会自动指向前端 `.env` 里配置的 `VITE_API_PROXY_TARGET`
+
+前端 `.env` 主要字段：
+
+```dotenv
+VITE_APP_HOST=127.0.0.1
+VITE_APP_PORT=5173
+VITE_API_PROXY_TARGET=http://127.0.0.1:8000
+VITE_API_BASE_URL=
+VITE_DEV_OPEN_BROWSER=true
+```
+
+说明：
+
+- `VITE_APP_HOST` 和 `VITE_APP_PORT` 控制 `npm run dev` 的前端地址
+- `VITE_API_PROXY_TARGET` 控制开发环境 `/api` 代理目标
+- `VITE_API_BASE_URL` 控制浏览器实际请求的 API 基地址
+- `VITE_DEV_OPEN_BROWSER` 控制开发模式是否自动打开浏览器
 
 ## 3. 生产构建
 

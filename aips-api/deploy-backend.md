@@ -22,12 +22,56 @@
 
 建议使用 Python 3.10 及以上版本。
 
+### 2.1 推荐方式：根目录一键启动
+
+当前仓库已经支持通过子项目 `.env` 自动加载配置。
+
+后端配置文件：
+
+- [aips-api/.env](/d:/Develop/SourceCode/pythoncode/aips/aips-api/.env)
+
+前端配置文件：
+
+- [aips-web/.env](/d:/Develop/SourceCode/pythoncode/aips/aips-web/.env)
+
+首次准备依赖：
+
 ```powershell
 cd aips-api
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+
+cd ..\aips-web
+npm install
+```
+
+之后在项目根目录直接执行：
+
+```powershell
+.\start-aips.ps1
+```
+
+或者双击：
+
+```text
+start-aips.bat
+```
+
+脚本会自动启动：
+
+- `aips-api`
+- `aips-web`
+- 浏览器首页
+
+### 2.2 仅启动后端
+
+```powershell
+cd aips-api
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python -m app.run_dev
 ```
 
 启动后访问：
@@ -41,6 +85,24 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```json
 {"status":"ok"}
 ```
+
+`python -m app.run_dev` 会自动读取 [aips-api/.env](/d:/Develop/SourceCode/pythoncode/aips/aips-api/.env) 中的后端地址和端口，不需要再手动写 `--host`、`--port`。
+
+后端 `.env` 主要字段：
+
+```dotenv
+AIPS_API_HOST=127.0.0.1
+AIPS_API_PORT=8000
+AIPS_WEB_HOST=127.0.0.1
+AIPS_WEB_PORT=5173
+# AIPS_CORS_ORIGINS=http://127.0.0.1:5173,http://localhost:5173
+```
+
+说明：
+
+- `AIPS_API_HOST` 和 `AIPS_API_PORT` 控制 `uvicorn` 启动地址
+- `AIPS_WEB_HOST` 和 `AIPS_WEB_PORT` 用于生成默认开发 CORS
+- `AIPS_CORS_ORIGINS` 可选，设置后会覆盖自动生成的 CORS 列表
 
 ## 3. 生产环境直接启动
 
@@ -129,6 +191,8 @@ server {
 
 - `http://127.0.0.1:5173`
 - `http://localhost:5173`
+
+如果你修改了 [aips-api/.env](/d:/Develop/SourceCode/pythoncode/aips/aips-api/.env) 里的 `AIPS_WEB_HOST` 或 `AIPS_WEB_PORT`，开发环境 CORS 会同步跟着更新。
 
 如果生产环境前后端不是同域部署，需要修改 [main.py](/d:/Develop/SourceCode/pythoncode/aips/aips-api/app/main.py) 中的 `allow_origins`。
 
