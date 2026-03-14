@@ -1,0 +1,68 @@
+INFO:     Started server process [19208]
+INFO:     Waiting for application startup.
+2026-03-14 13:52:45,796 INFO app.services.cleanup_service storage cleanup completed (uploads=0 results=0 tasks=0 temp=0)
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2026-03-14 13:54:32,789 INFO aips.http request_id=3b6a627542d541af client=127.0.0.1 method=GET path=/api/v1/health status=200 duration_ms=14.78
+2026-03-14 13:54:40,325 INFO aips.http request_id=270ff58dc4ad4a6a client=127.0.0.1 method=GET path=/api/v1/presets status=200 duration_ms=4.1
+2026-03-14 13:54:40,327 INFO aips.http request_id=d7088d66489e4e25 client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=8.98
+2026-03-14 13:57:40,598 INFO aips.http request_id=2805c5d68a2f4de3 client=127.0.0.1 method=GET path=/api/v1/presets status=200 duration_ms=2.75
+2026-03-14 13:57:40,601 INFO aips.http request_id=ff4257338c25465c client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=6.47
+2026-03-14 13:57:45,793 INFO aips.http request_id=81917a834f4b4711 client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=4.12
+2026-03-14 13:58:16,724 INFO aips.audit event=upload_completed request_id=ae3d7e17b6804ce0 file_id=dc01afb686cb4538bce6965cc0544e41 original_filename=计算机等级考试1.jpg size_bytes=20480 format=jpeg width_px=144 height_px=192
+2026-03-14 13:58:16,724 INFO aips.http request_id=ae3d7e17b6804ce0 client=127.0.0.1 method=POST path=/api/v1/files/upload status=201 duration_ms=18.75 bucket=upload
+2026-03-14 13:58:16,724 INFO aips.http request_id=0ab03c0b2ccb4732 client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=3.68
+2026-03-14 13:58:20,080 INFO aips.audit event=suggest_render_completed request_id=66e89d65e47349d0 file_id=dc01afb686cb4538bce6965cc0544e41 face_detected=true fit_mode=FitMode.FILL viewport=385.71x540.0
+2026-03-14 13:58:20,080 INFO aips.http request_id=66e89d65e47349d0 client=127.0.0.1 method=POST path=/api/v1/images/suggest-render status=200 duration_ms=132.48 bucket=heavy
+2026-03-14 13:58:38,479 INFO aips.audit event=process_completed request_id=ebc2d761407145f3 file_id=dc01afb686cb4538bce6965cc0544e41 task_id=351d5597321d431a86e533e670a27511 preset_id=three-inch width_px=650 height_px=1004 format=jpg size_kb=63.64
+2026-03-14 13:58:38,479 INFO aips.http request_id=ebc2d761407145f3 client=127.0.0.1 method=POST path=/api/v1/images/process status=201 duration_ms=69.29 bucket=heavy
+2026-03-14 13:58:38,513 INFO aips.http request_id=a140ac70b5fe4ef6 client=127.0.0.1 method=GET path=/api/v1/tasks/351d5597321d431a86e533e670a27511 status=200 duration_ms=4.55
+2026-03-14 13:58:38,517 INFO aips.http request_id=390b5e1051fe4f74 client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=6.74
+2026-03-14 13:58:38,519 INFO aips.http request_id=abbeaee661c94a0d client=127.0.0.1 method=GET path=/api/v1/files/result/351d5597321d431a86e533e670a27511 status=200 duration_ms=3.49
+2026-03-14 13:58:48,574 INFO aips.http request_id=d37d0b4bfb354622 client=127.0.0.1 method=GET path=/api/v1/files/download/351d5597321d431a86e533e670a27511 status=200 duration_ms=3.5
+2026-03-14 13:59:05,742 INFO aips.http request_id=e969400f32cb4f3b client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=4.31
+2026-03-14 13:59:10,428 INFO aips.http request_id=db524d9b7da04d13 client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=4.55
+2026-03-14 13:59:11,023 INFO aips.http request_id=d85e5df2e27346e9 client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=4.61
+2026-03-14 14:01:36,714 INFO aips.http request_id=8c16e45025de4267 client=127.0.0.1 method=GET path=/api/v1/presets status=200 duration_ms=2.57
+2026-03-14 14:01:36,719 INFO aips.http request_id=3b92d419f5c34fa1 client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=7.31
+2026-03-14 14:02:34,309 INFO aips.http request_id=8b4a3201fc9b4776 client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=7.58
+2026-03-14 14:04:19,192 INFO aips.http request_id=14dc07ac52c1479f client=127.0.0.1 method=GET path=/api/v1/tasks/ecbb44172b454e75ae3776641abe728c status=200 duration_ms=2.31
+2026-03-14 14:04:19,202 INFO aips.http request_id=a2ef66742210480b client=127.0.0.1 method=GET path=/api/v1/files/result/ecbb44172b454e75ae3776641abe728c status=200 duration_ms=2.35
+2026-03-14 14:04:22,260 INFO aips.http request_id=0a48b36aed344247 client=127.0.0.1 method=GET path=/api/v1/presets status=200 duration_ms=2.15
+2026-03-14 14:04:22,265 INFO aips.http request_id=cf4a9896f99041b8 client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=6.32
+2026-03-14 14:04:38,566 INFO aips.http request_id=321f4694e2d548ec client=127.0.0.1 method=GET path=/api/v1/tasks/ecbb44172b454e75ae3776641abe728c status=200 duration_ms=3.21
+2026-03-14 14:04:38,576 INFO aips.http request_id=0fcc8a25779142de client=127.0.0.1 method=GET path=/api/v1/files/result/ecbb44172b454e75ae3776641abe728c status=200 duration_ms=2.42
+2026-03-14 14:05:06,966 INFO aips.http request_id=980b81fb566946da client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=4.55
+2026-03-14 14:05:36,685 INFO aips.http request_id=5e716d6654ec4504 client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=9.98
+2026-03-14 14:05:36,720 INFO aips.http request_id=8879a5baa63c4658 client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=4.92
+2026-03-14 14:05:38,554 INFO aips.audit event=upload_completed request_id=84efeabc38124b0f file_id=0a98578159524588b8f8ab331eccc279 original_filename=计算机等级考试1.jpg size_bytes=20480 format=jpeg width_px=144 height_px=192
+2026-03-14 14:05:38,554 INFO aips.http request_id=84efeabc38124b0f client=127.0.0.1 method=POST path=/api/v1/files/upload status=201 duration_ms=4.31 bucket=upload
+2026-03-14 14:05:38,556 INFO aips.http request_id=187fbdfe1b8d4d05 client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=4.2
+2026-03-14 14:05:57,068 INFO aips.http request_id=0c3020808c48493d client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=10.76
+2026-03-14 14:07:57,774 INFO aips.http request_id=53d57d5acf6b4a35 client=127.0.0.1 method=GET path=/api/v1/presets status=200 duration_ms=2.09
+2026-03-14 14:07:57,778 INFO aips.http request_id=f54ed2f9044c4e3e client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=6.01
+2026-03-14 14:08:04,992 INFO aips.http request_id=f2023afe0b1d4e14 client=127.0.0.1 method=GET path=/api/v1/tasks/351d5597321d431a86e533e670a27511 status=200 duration_ms=1.9
+2026-03-14 14:08:05,004 INFO aips.http request_id=202d7fde3a6c4f4f client=127.0.0.1 method=GET path=/api/v1/files/result/351d5597321d431a86e533e670a27511 status=200 duration_ms=2.57
+2026-03-14 14:08:12,266 INFO aips.http request_id=6f77637eb4f0400b client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=4.69
+2026-03-14 14:08:12,333 INFO aips.http request_id=92416928286d403c client=127.0.0.1 method=GET path=/api/v1/tasks/351d5597321d431a86e533e670a27511 status=200 duration_ms=2.1
+2026-03-14 14:08:12,342 INFO aips.http request_id=ac3c10bd2ac84540 client=127.0.0.1 method=GET path=/api/v1/files/result/351d5597321d431a86e533e670a27511 status=200 duration_ms=2.47
+2026-03-14 14:08:43,494 INFO aips.http request_id=0e73a82b4e7a4694 client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=5.27
+2026-03-14 14:09:54,941 INFO aips.http request_id=63510b28f3904037 client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=5.61
+2026-03-14 14:10:05,481 INFO aips.http request_id=77b2f98ed97c4de0 client=127.0.0.1 method=GET path=/api/v1/tasks/e86e7643fab64958b995008f0364f0d3 status=200 duration_ms=2.23
+2026-03-14 14:10:05,487 INFO aips.http request_id=fafea3e85bb14f4b client=127.0.0.1 method=GET path=/api/v1/files/result/e86e7643fab64958b995008f0364f0d3 status=200 duration_ms=2.18
+2026-03-14 14:10:08,022 INFO aips.http request_id=47e6994136ae47da client=127.0.0.1 method=GET path=/api/v1/presets status=200 duration_ms=1.51
+2026-03-14 14:10:08,028 INFO aips.http request_id=722b1717c21f4ded client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=7.34
+2026-03-14 14:10:11,532 INFO aips.http request_id=3ef956d546084923 client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=6.1
+2026-03-14 14:10:15,969 INFO aips.http request_id=778a69870a424c47 client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=4.36
+2026-03-14 14:12:56,907 INFO aips.http request_id=b7b4afc811894c22 client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=5.67
+2026-03-14 14:15:49,421 INFO aips.http request_id=d06552f4f80741b5 client=127.0.0.1 method=GET path=/api/v1/presets status=200 duration_ms=2.04
+2026-03-14 14:15:49,427 INFO aips.http request_id=ba592896a4574aa0 client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=7.44
+2026-03-14 14:17:42,176 INFO aips.http request_id=8b2c6d14db174c9b client=127.0.0.1 method=GET path=/api/v1/health status=200 duration_ms=1.1
+2026-03-14 14:18:03,030 INFO aips.http request_id=078be65a66494cf5 client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=5.9
+2026-03-14 14:20:56,069 INFO aips.audit event=upload_completed request_id=5122e925fa404ef8 file_id=df7062210e7642a9977b937e6a9594fb original_filename=sample.png size_bytes=27980 format=png width_px=900 height_px=1300
+2026-03-14 14:20:56,069 INFO aips.http request_id=5122e925fa404ef8 client=127.0.0.1 method=POST path=/api/v1/files/upload status=201 duration_ms=3.66 bucket=upload
+2026-03-14 14:20:56,085 INFO aips.http request_id=827c8c37cb34480d client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=5.51
+2026-03-14 14:21:11,196 INFO aips.audit event=process_completed request_id=98b26946a3164069 file_id=df7062210e7642a9977b937e6a9594fb task_id=24437b03cd9e4193bdfdae0b88f1c616 preset_id=one-inch width_px=295 height_px=413 format=jpg size_kb=4.18
+2026-03-14 14:21:11,197 INFO aips.http request_id=98b26946a3164069 client=127.0.0.1 method=POST path=/api/v1/images/process status=201 duration_ms=44.55 bucket=heavy
+2026-03-14 14:21:11,211 INFO aips.http request_id=7e485ccaef4f457e client=127.0.0.1 method=GET path=/api/v1/files/result/24437b03cd9e4193bdfdae0b88f1c616 status=200 duration_ms=2.19
+2026-03-14 14:21:11,236 INFO aips.http request_id=b6009363129d4692 client=127.0.0.1 method=GET path=/api/v1/tasks status=200 duration_ms=6.95

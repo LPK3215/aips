@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.coverage
+aips-api/storage/uploads/
+aips-api/storage/results/
+aips-api/storage/tasks/
+aips-web/node_modules/
+aips-web/dist/
