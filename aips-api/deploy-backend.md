@@ -22,49 +22,30 @@
 
 建议使用 Python 3.10 及以上版本。
 
-### 2.1 推荐方式：根目录一键启动
-
-当前仓库已经支持通过子项目 `.env` 自动加载配置。
+### 2.1 推荐方式：直接运行启动文件
 
 后端配置文件：
 
-- [aips-api/.env](/d:/Develop/SourceCode/pythoncode/aips/aips-api/.env)
-
-前端配置文件：
-
-- [aips-web/.env](/d:/Develop/SourceCode/pythoncode/aips/aips-web/.env)
+- [aips-api/.env](.env)
 
 首次准备依赖：
 
-```powershell
+```bash
 cd aips-api
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-
-cd ..\aips-web
-npm install
 ```
 
-之后在项目根目录直接执行：
+之后在 `aips-api` 目录直接运行：
 
-```powershell
-.\start-aips.ps1
+```bash
+python start-aips.py
 ```
 
-或者双击：
+脚本会自动读取 `.env` 并启动后端服务。
 
-```text
-start-aips.bat
-```
-
-脚本会自动启动：
-
-- `aips-api`
-- `aips-web`
-- 浏览器首页
-
-### 2.2 仅启动后端
+### 2.2 备用方式
 
 ```powershell
 cd aips-api
@@ -86,7 +67,7 @@ python -m app.run_dev
 {"status":"ok"}
 ```
 
-`python -m app.run_dev` 会自动读取 [aips-api/.env](/d:/Develop/SourceCode/pythoncode/aips/aips-api/.env) 中的后端地址和端口，不需要再手动写 `--host`、`--port`。
+`python -m app.run_dev` 会自动读取 [.env](.env) 中的后端地址和端口，不需要再手动写 `--host`、`--port`。
 
 后端 `.env` 主要字段：
 
@@ -192,9 +173,9 @@ server {
 - `http://127.0.0.1:5173`
 - `http://localhost:5173`
 
-如果你修改了 [aips-api/.env](/d:/Develop/SourceCode/pythoncode/aips/aips-api/.env) 里的 `AIPS_WEB_HOST` 或 `AIPS_WEB_PORT`，开发环境 CORS 会同步跟着更新。
+如果你修改了 [.env](.env) 里的 `AIPS_WEB_HOST` 或 `AIPS_WEB_PORT`，开发环境 CORS 会同步跟着更新。
 
-如果生产环境前后端不是同域部署，需要修改 [main.py](/d:/Develop/SourceCode/pythoncode/aips/aips-api/app/main.py) 中的 `allow_origins`。
+如果生产环境前后端不是同域部署，需要修改 [app/main.py](app/main.py) 中的 `allow_origins`。
 
 如果生产环境通过同域名 Nginx 反向代理访问，通常不需要额外改 CORS。
 
@@ -202,7 +183,7 @@ server {
 
 服务启动后会自动运行清理任务，清理历史上传、结果和临时文件。默认存储 TTL 为 24 小时。
 
-如果后续要保留更长时间的结果文件，需要调整 [config.py](/d:/Develop/SourceCode/pythoncode/aips/aips-api/app/core/config.py) 中的配置。
+如果后续要保留更长时间的结果文件，需要调整 [app/core/config.py](app/core/config.py) 中的配置。
 
 ### 6.3 反向代理路径
 

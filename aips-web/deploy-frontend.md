@@ -17,47 +17,22 @@
 
 ## 2. 本地启动
 
-### 2.1 推荐方式：根目录一键启动
-
-当前仓库已经支持通过子项目 `.env` 自动加载配置。
+### 2.1 启动前端
 
 前端配置文件：
 
-- [aips-web/.env](/d:/Develop/SourceCode/pythoncode/aips/aips-web/.env)
-
-后端配置文件：
-
-- [aips-api/.env](/d:/Develop/SourceCode/pythoncode/aips/aips-api/.env)
+- [aips-web/.env](.env)
 
 首次准备依赖：
 
-```powershell
-cd aips-api
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-
-cd ..\aips-web
-npm install
-```
-
-之后在项目根目录直接执行：
-
-```powershell
-.\start-aips.ps1
-```
-
-或者双击：
-
-```text
-start-aips.bat
-```
-
-### 2.2 仅启动前端
-
-```powershell
+```bash
 cd aips-web
 npm install
+```
+
+之后启动开发服务：
+
+```bash
 npm run dev
 ```
 
@@ -67,8 +42,8 @@ npm run dev
 
 注意：
 
-- 本地调试前，建议先启动 `aips-api`
-- 当前 Vite 会自动读取 [aips-web/.env](/d:/Develop/SourceCode/pythoncode/aips/aips-web/.env)
+- 本地调试前，建议先启动 `aips-api`（进入 `aips-api/` 目录运行 `python start-aips.py`）
+- Vite 会自动读取 [.env](.env)
 - `/api` 代理目标会自动指向前端 `.env` 里配置的 `VITE_API_PROXY_TARGET`
 
 前端 `.env` 主要字段：
