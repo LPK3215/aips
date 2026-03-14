@@ -5,9 +5,10 @@
     <section class="hero hero--compact">
       <div class="hero__copy">
         <p class="eyebrow">TOOLS</p>
-        <h1>常用图片工具，拆开单独做。</h1>
+        <h1>常用处理，</h1>
+        <h1>拆开单独做。</h1>
         <p class="hero__lede">
-          不把主工作台继续堆复杂。这里放常见图片处理能力，每个工具单独一页，适合更明确的操作目标。
+          把缩放、增强这类单项操作拆开，按明确目标直接处理。
         </p>
       </div>
       <div class="hero__badge">

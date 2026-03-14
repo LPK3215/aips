@@ -19,9 +19,15 @@
 
 ### 2.1 启动前端
 
-前端配置文件：
+前端配置文件（`.env` 默认被 Git 忽略，仓库提供模板）：
 
-- [aips-web/.env](.env)
+- `.env`（本地配置，按需修改）
+- [`.env.example`](.env.example)（模板）
+
+生成本地 `.env`：
+
+- 推荐：在仓库根目录运行 `python init-env.py`
+- 或直接运行 `npm run dev` / `npm run build`（若 `.env` 不存在，会从 `.env.example` 自动生成）
 
 首次准备依赖：
 
@@ -43,7 +49,7 @@ npm run dev
 注意：
 
 - 本地调试前，建议先启动 `aips-api`（进入 `aips-api/` 目录运行 `python start-aips.py`）
-- Vite 会自动读取 [.env](.env)
+- Vite 会自动读取本地 `.env`（若不存在，会从 `.env.example` 自动生成）
 - `/api` 代理目标会自动指向前端 `.env` 里配置的 `VITE_API_PROXY_TARGET`
 
 前端 `.env` 主要字段：

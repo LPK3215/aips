@@ -12,6 +12,7 @@ from app.api.router import api_router
 from app.core.config import CORS_ORIGINS, ensure_storage_dirs
 from app.services.cleanup_service import cleanup_service
 from app.services.rate_limit_service import RateLimitDecision, rate_limit_service
+from app.services.task_queue_service import task_queue_service
 
 logger = logging.getLogger("aips.http")
 _REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9_-]{8,64}$")
@@ -35,9 +36,11 @@ _configure_logging()
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     cleanup_service.start()
+    await task_queue_service.start_worker()
     try:
         yield
     finally:
+        await task_queue_service.stop_worker()
         cleanup_service.stop()
 
 

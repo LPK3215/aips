@@ -49,6 +49,7 @@ class OutputOptions(BaseModel):
     target_size_kb_max: int | None = Field(default=None, ge=1, le=10000)
     filename: str | None = Field(default=None, max_length=120)
     background_color: str = Field(default="#ffffff", pattern=r"^#([0-9a-fA-F]{6})$")
+    background_image_id: str | None = Field(default=None, description="背景图像的文件ID")
     replace_background: bool = False
     replace_feather: int = Field(default=6, ge=0, le=24)
 

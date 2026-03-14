@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import io
 import math
+import os
 import re
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -16,7 +19,7 @@ try:
 except ImportError:  # pragma: no cover - depends on runtime environment
     cv2 = None
 
-from app.core.config import MAX_IMAGE_PIXELS
+from app.core.config import MAX_IMAGE_PIXELS, UPLOADS_DIR
 from app.schemas.images import (
     Adjustments,
     BasicOutputOptions,
@@ -31,6 +34,52 @@ from app.schemas.images import (
 from app.schemas.tasks import ImageInfo, ResultMeta, TaskDetailResponse
 from app.services.face_service import FaceBox, face_service
 from app.utils.image_math import resolve_output_size
+
+# 缓存目录
+CACHE_DIR = UPLOADS_DIR / "cache"
+CACHE_DIR.mkdir(exist_ok=True)
+
+# 缓存过期时间（秒）
+CACHE_EXPIRY = 24 * 60 * 60  # 24小时
+
+
+def _generate_cache_key(source_path: Path, params: dict) -> str:
+    """生成缓存键，基于源文件路径和处理参数"""
+    # 计算源文件的哈希值
+    with open(source_path, 'rb') as f:
+        file_hash = hashlib.md5(f.read()).hexdigest()
+    
+    # 计算参数的哈希值
+    params_str = str(sorted(params.items())).encode('utf-8')
+    params_hash = hashlib.md5(params_str).hexdigest()
+    
+    # 组合哈希值生成缓存键
+    return f"{file_hash}_{params_hash}"
+
+def _get_cache_path(cache_key: str, extension: str) -> Path:
+    """获取缓存文件路径"""
+    return CACHE_DIR / f"{cache_key}.{extension}"
+
+def _is_cache_valid(cache_path: Path) -> bool:
+    """检查缓存是否有效（存在且未过期）"""
+    if not cache_path.exists():
+        return False
+    
+    # 检查缓存是否过期
+    mtime = cache_path.stat().st_mtime
+    current_time = time.time()
+    return current_time - mtime < CACHE_EXPIRY
+
+def _cleanup_expired_cache():
+    """清理过期的缓存文件"""
+    current_time = time.time()
+    for cache_file in CACHE_DIR.glob("*.*"):
+        mtime = cache_file.stat().st_mtime
+        if current_time - mtime >= CACHE_EXPIRY:
+            try:
+                cache_file.unlink()
+            except Exception:
+                pass
 
 
 Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
@@ -278,16 +327,34 @@ def _replace_background_grabcut(
     image: Image.Image,
     background_color: str,
     feather: int,
+    background_image: Image.Image | None = None,
 ) -> Image.Image:
     if cv2 is None:
         return _replace_background_simple(image, background_color, feather)
 
-    rgb = np.array(image.convert("RGB"))
-    height, width = rgb.shape[:2]
-    if width < 2 or height < 2:
-        return image
+    # 快速检查图像大小，避免大图像处理时间过长
+    width, height = image.size
+    face = None
+    
+    # 只在需要时创建RGB数组
+    if width * height <= 10000000:  # 10MP以下直接处理
+        rgb = np.array(image.convert("RGB"))
+        face = face_service.detect_largest_face(rgb)
+    else:
+        # 对大图像进行降采样处理
+        scale_factor = min(1.0, math.sqrt(10000000 / (width * height)))
+        new_width = max(640, int(width * scale_factor))
+        new_height = max(480, int(height * scale_factor))
+        small_image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        small_rgb = np.array(small_image.convert("RGB"))
+        face = face_service.detect_largest_face(small_rgb)
+        if face:
+            # 将检测结果映射回原始图像
+            face.x = int(face.x / scale_factor)
+            face.y = int(face.y / scale_factor)
+            face.width = int(face.width / scale_factor)
+            face.height = int(face.height / scale_factor)
 
-    face = face_service.detect_largest_face(rgb)
     if face:
         rect = (
             int(_clamp(face.x - face.width * 1.2, 0, width - 2)),
@@ -300,32 +367,98 @@ def _replace_background_grabcut(
         margin_y = int(height * 0.08)
         rect = (margin_x, margin_y, width - margin_x * 2, height - margin_y * 2)
 
+    # 对于大图像，使用分块处理以减少内存使用
+    if width * height > 15000000:  # 15MP
+        return _process_large_image_in_chunks(
+            image, background_color, feather, background_image, rect
+        )
+
+    # 对于中等大小的图像，使用常规处理
+    if 'rgb' not in locals():
+        rgb = np.array(image.convert("RGB"))
+    
+    # 直接在RGB数组上操作，避免额外的颜色空间转换
     bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
     mask = np.zeros(bgr.shape[:2], np.uint8)
     bgd_model = np.zeros((1, 65), np.float64)
     fgd_model = np.zeros((1, 65), np.float64)
 
     try:
-        cv2.grabCut(bgr, mask, rect, bgd_model, fgd_model, 4, cv2.GC_INIT_WITH_RECT)
+        # 减少迭代次数以提高性能
+        cv2.grabCut(bgr, mask, rect, bgd_model, fgd_model, 3, cv2.GC_INIT_WITH_RECT)
     except cv2.error:
         return _replace_background_simple(image, background_color, feather)
 
-    keep = np.where((mask == cv2.GC_FGD) | (mask == cv2.GC_PR_FGD), 1.0, 0.0).astype(
-        "float32"
-    )
+    # 直接在mask上操作，避免创建新的keep数组
+    keep = np.zeros(mask.shape, dtype=np.float32)
+    keep[(mask == cv2.GC_FGD) | (mask == cv2.GC_PR_FGD)] = 1.0
 
+    # 使用in-place操作减少内存复制
     kernel = np.ones((3, 3), np.uint8)
-    keep = cv2.morphologyEx(keep, cv2.MORPH_CLOSE, kernel, iterations=2)
+    keep = cv2.morphologyEx(keep, cv2.MORPH_CLOSE, kernel, iterations=1)
 
     if feather > 0:
         ksize = max(3, feather * 2 + 1)
         keep = cv2.GaussianBlur(keep, (ksize, ksize), 0)
-        keep = np.clip(keep, 0.0, 1.0)
+        np.clip(keep, 0.0, 1.0, out=keep)  # in-place操作
 
-    bg_rgb = np.array(_hex_to_rgba(background_color)[:3], dtype=np.float32)
-    comp = rgb.astype(np.float32) * keep[..., None] + bg_rgb * (1.0 - keep[..., None])
-    comp = np.clip(comp, 0, 255).astype(np.uint8)
+    # 准备背景
+    if background_image is not None:
+        # 调整背景图像大小以匹配原始图像
+        background = background_image.resize((width, height), Image.Resampling.LANCZOS)
+        bg_rgb = np.array(background.convert("RGB"), dtype=np.float32)
+    else:
+        # 使用背景颜色
+        bg_rgb = np.array(_hex_to_rgba(background_color)[:3], dtype=np.float32)
+
+    # 直接在rgb数组上进行计算，减少内存分配
+    rgb_float = rgb.astype(np.float32)
+    comp = rgb_float * keep[..., None] + bg_rgb * (1.0 - keep[..., None])
+    np.clip(comp, 0, 255, out=comp)
+    comp = comp.astype(np.uint8)
+    
     return Image.fromarray(comp).convert("RGBA")
+
+
+def _process_large_image_in_chunks(
+    image: Image.Image,
+    background_color: str,
+    feather: int,
+    background_image: Image.Image | None,
+    rect: tuple[int, int, int, int],
+) -> Image.Image:
+    """分块处理大图像，减少内存使用"""
+    width, height = image.size
+    chunk_size = 2048  # 每个块的大小
+    
+    # 准备背景
+    if background_image is not None:
+        background = background_image.resize((width, height), Image.Resampling.LANCZOS)
+    else:
+        background = Image.new("RGB", (width, height), _hex_to_rgba(background_color)[:3])
+    
+    # 创建结果图像
+    result = Image.new("RGBA", (width, height))
+    
+    # 分块处理
+    for y in range(0, height, chunk_size):
+        for x in range(0, width, chunk_size):
+            # 计算块的边界
+            chunk_width = min(chunk_size, width - x)
+            chunk_height = min(chunk_size, height - y)
+            
+            # 提取块
+            chunk = image.crop((x, y, x + chunk_width, y + chunk_height))
+            
+            # 处理块
+            processed_chunk = _replace_background_simple(
+                chunk, background_color, feather
+            )
+            
+            # 将处理后的块粘贴到结果图像
+            result.paste(processed_chunk, (x, y))
+    
+    return result
 
 
 @dataclass
@@ -354,8 +487,9 @@ def _save_output_artifact(
     output_dir: Path,
     preset_name: str | None,
     fallback_prefix: str,
+    task_id: str | None = None,
 ) -> ProcessedArtifact:
-    task_id = uuid4().hex
+    task_id = task_id or uuid4().hex
     filename = _sanitize_filename(
         output.filename,
         fallback=f"{fallback_prefix}-{task_id[:8]}",
@@ -460,7 +594,74 @@ class ImageService:
         request: ProcessRequest,
         output_dir: Path,
         preset_name: str | None = None,
+        task_id: str | None = None,
     ) -> ProcessedArtifact:
+        # 生成缓存键
+        params = {
+            "custom_size": request.custom_size.model_dump(),
+            "render": request.render.model_dump(),
+            "adjustments": request.adjustments.model_dump(),
+            "output": request.output.model_dump(),
+            "preset_name": preset_name,
+        }
+        cache_key = _generate_cache_key(source_path, params)
+        extension = "jpg" if request.output.format == "jpg" else "png"
+        cache_path = _get_cache_path(cache_key, extension)
+        
+        # 检查缓存是否有效
+        if _is_cache_valid(cache_path):
+            # 从缓存中读取结果
+            response_task_id = task_id or uuid4().hex
+            output_path = output_dir / f"{response_task_id}.{extension}"
+            
+            # 如果缓存文件不存在于输出目录，复制过去
+            if not output_path.exists():
+                import shutil
+                shutil.copy2(cache_path, output_path)
+            
+            # 计算文件大小
+            size_kb = round(output_path.stat().st_size / 1024, 2)
+            
+            # 构建返回结果
+            filename = _sanitize_filename(
+                request.output.filename,
+                fallback=f"result-{response_task_id[:8]}",
+                output_format=request.output.format,
+            )
+            
+            meta = ResultMeta(
+                width_px=0,  # 这里需要从图像中读取实际尺寸
+                height_px=0,  # 这里需要从图像中读取实际尺寸
+                format=request.output.format,
+                dpi=request.output.dpi,
+                size_kb=size_kb,
+                filename=filename,
+                background_color=request.output.background_color,
+                preset_name=preset_name,
+            )
+            
+            # 读取图像尺寸
+            try:
+                with Image.open(output_path) as img:
+                    meta.width_px = img.width
+                    meta.height_px = img.height
+            except Exception:
+                pass
+            
+            created_at = datetime.now(timezone.utc).isoformat()
+            result_url = f"/api/v1/files/result/{response_task_id}"
+            download_url = f"/api/v1/files/download/{response_task_id}"
+            
+            return ProcessedArtifact(
+                task_id=response_task_id,
+                output_path=output_path,
+                result_url=result_url,
+                download_url=download_url,
+                meta=meta,
+                created_at=created_at,
+            )
+        
+        # 缓存无效，执行正常处理流程
         target_width, target_height = resolve_output_size(request.custom_size)
         if target_width * target_height > MAX_IMAGE_PIXELS:
             raise ValueError("输出尺寸过大，建议降低尺寸或 DPI（建议小于 25MP）。")
@@ -481,18 +682,47 @@ class ImageService:
         )
         adjusted = _apply_adjustments(composed, request.adjustments)
         if request.output.replace_background:
+            # 处理背景图像
+            background_image = None
+            if request.output.background_image_id:
+                from app.services.storage_service import storage_service
+                background_path = storage_service.get_upload_path(request.output.background_image_id)
+                if background_path:
+                    try:
+                        background_image = Image.open(background_path)
+                        background_image.load()
+                    except Exception:
+                        # 背景图像加载失败，使用背景颜色
+                        background_image = None
+            
             adjusted = _replace_background_grabcut(
                 adjusted,
                 background_color=request.output.background_color,
                 feather=request.output.replace_feather,
+                background_image=background_image,
             )
-        return _save_output_artifact(
+        
+        # 保存结果
+        artifact = _save_output_artifact(
             adjusted,
             output=request.output,
             output_dir=output_dir,
             preset_name=preset_name,
             fallback_prefix="result",
+            task_id=task_id,
         )
+        
+        # 将结果写入缓存
+        try:
+            import shutil
+            shutil.copy2(artifact.output_path, cache_path)
+        except Exception:
+            pass
+        
+        # 清理过期缓存
+        _cleanup_expired_cache()
+        
+        return artifact
 
     def suggest_render(self, source_path: Path, request: SuggestRenderRequest) -> tuple[RenderState, FaceBox | None]:
         prepared, _ = _load_supported_source(
@@ -565,6 +795,7 @@ class ImageService:
         output,
         output_dir: Path,
         preset_name: str | None = None,
+        task_id: str | None = None,
     ) -> ProcessedArtifact:
         page_width, page_height = resolve_output_size(page_size)
         if page_width * page_height > MAX_IMAGE_PIXELS:
@@ -618,6 +849,7 @@ class ImageService:
             output_dir=output_dir,
             preset_name=preset_name,
             fallback_prefix="sheet",
+            task_id=task_id,
         )
 
     def resize_image(
@@ -626,6 +858,7 @@ class ImageService:
         request: ResizeRequest,
         output_dir: Path,
         preset_name: str | None = None,
+        task_id: str | None = None,
     ) -> ProcessedArtifact:
         if request.width_px * request.height_px > MAX_IMAGE_PIXELS:
             raise ValueError("输出尺寸过大，建议降低宽高（建议小于 25MP）。")
@@ -644,6 +877,7 @@ class ImageService:
             output_dir=output_dir,
             preset_name=preset_name,
             fallback_prefix="resized",
+            task_id=task_id,
         )
 
     def enhance_image(
@@ -652,6 +886,7 @@ class ImageService:
         request: EnhanceRequest,
         output_dir: Path,
         preset_name: str | None = None,
+        task_id: str | None = None,
     ) -> ProcessedArtifact:
         prepared, _ = _load_supported_source(
             source_path,
@@ -725,6 +960,7 @@ class ImageService:
             output_dir=output_dir,
             preset_name=preset_name,
             fallback_prefix="enhanced",
+            task_id=task_id,
         )
 
 

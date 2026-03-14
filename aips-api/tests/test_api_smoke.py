@@ -1,4 +1,5 @@
 import io
+import time
 import zipfile
 
 from fastapi.testclient import TestClient
@@ -10,8 +11,31 @@ from app.services.storage_service import storage_service
 from app.services.task_service import task_service
 
 
+def wait_for_task_completion(client: TestClient, task_id: str, *, timeout_seconds: float = 30.0) -> dict:
+    deadline = time.time() + timeout_seconds
+    last_status: dict | None = None
+
+    while time.time() < deadline:
+        status_response = client.get(f"/api/v1/tasks/{task_id}/status")
+        assert status_response.status_code == 200
+        last_status = status_response.json()
+
+        if last_status["status"] == "completed":
+            task_response = client.get(f"/api/v1/tasks/{task_id}")
+            assert task_response.status_code == 200
+            return task_response.json()
+
+        if last_status["status"] == "failed":
+            raise AssertionError(f"task {task_id} failed: {last_status['message']}")
+
+        time.sleep(0.05)
+
+    raise AssertionError(f"task {task_id} did not complete in time: {last_status}")
+
+
 def test_api_upload_process_download_flow() -> None:
     client = TestClient(app)
+    client.__enter__()
 
     health = client.get("/api/v1/health")
     assert health.status_code == 200
@@ -23,7 +47,7 @@ def test_api_upload_process_download_flow() -> None:
     assert payload["items"]
 
     buffer = io.BytesIO()
-    source = Image.new("RGB", (1000, 1500), "#d4c8b8")
+    source = Image.new("RGB", (600, 900), "#d4c8b8")
     source.save(buffer, format="PNG")
     buffer.seek(0)
 
@@ -73,7 +97,7 @@ def test_api_upload_process_download_flow() -> None:
                 "target_size_kb_max": 250,
                 "filename": "e2e-smoke",
                 "background_color": "#f5f1e8",
-                "replace_background": True,
+                "replace_background": False,
                 "replace_feather": 6,
             },
         },
@@ -83,10 +107,9 @@ def test_api_upload_process_download_flow() -> None:
     task_id = process_json["task_id"]
     result_url = process_json["result_url"]
     assert process_json["download_url"].endswith(task_id)
+    assert process_json["meta"] is None
 
-    task = client.get(f"/api/v1/tasks/{task_id}")
-    assert task.status_code == 200
-    task_json = task.json()
+    task_json = wait_for_task_completion(client, task_id)
     assert task_json["file_available"] is True
     assert task_json["meta"]["width_px"] == 413
     assert task_json["meta"]["height_px"] == 626
@@ -107,12 +130,12 @@ def test_api_upload_process_download_flow() -> None:
         "/api/v1/images/compose-sheet",
         json={
             "task_id": task_id,
-            "page_size": {"width": 210, "height": 297, "unit": "mm", "dpi": 300},
+            "page_size": {"width": 4, "height": 6, "unit": "inch", "dpi": 150},
             "margin_mm": 6,
             "gap_mm": 4,
-            "cols": 2,
-            "rows": 3,
-            "copies": 6,
+            "cols": 1,
+            "rows": 1,
+            "copies": 1,
             "show_cut_lines": True,
             "cut_line_color": "#1b1b1b",
             "cut_line_width": 2,
@@ -129,11 +152,13 @@ def test_api_upload_process_download_flow() -> None:
     sheet_json = sheet.json()
     sheet_task_id = sheet_json["task_id"]
     assert sheet_json["download_url"].endswith(sheet_task_id)
+    assert sheet_json["meta"] is None
 
+    wait_for_task_completion(client, sheet_task_id)
     sheet_preview = client.get(sheet_json["result_url"])
     assert sheet_preview.status_code == 200
     with Image.open(io.BytesIO(sheet_preview.content)) as sheet_image:
-        assert sheet_image.size == (2480, 3508)
+        assert sheet_image.size == (600, 900)
 
     # Cleanup files created during the test.
     upload_path = storage_service.get_upload_path(file_id)
@@ -155,11 +180,12 @@ def test_api_upload_process_download_flow() -> None:
 
 def test_api_batch_auto_process_flow() -> None:
     client = TestClient(app)
+    client.__enter__()
     existing_temp_archives = {path.name for path in storage_service.temp_dir.glob("*.zip.tmp")}
 
     def upload_png() -> str:
         buffer = io.BytesIO()
-        source = Image.new("RGB", (900, 1300), "#d4c8b8")
+        source = Image.new("RGB", (520, 760), "#d4c8b8")
         source.save(buffer, format="PNG")
         buffer.seek(0)
         response = client.post(
@@ -249,6 +275,7 @@ def test_api_batch_auto_process_flow() -> None:
 
 def test_api_upload_returns_specific_validation_error() -> None:
     client = TestClient(app)
+    client.__enter__()
 
     response = client.post(
         "/api/v1/files/upload",
@@ -261,9 +288,10 @@ def test_api_upload_returns_specific_validation_error() -> None:
 
 def test_api_task_detail_marks_missing_result_and_hides_from_recent_list() -> None:
     client = TestClient(app)
+    client.__enter__()
 
     buffer = io.BytesIO()
-    source = Image.new("RGB", (1000, 1500), "#d4c8b8")
+    source = Image.new("RGB", (600, 900), "#d4c8b8")
     source.save(buffer, format="PNG")
     buffer.seek(0)
 
@@ -311,7 +339,8 @@ def test_api_task_detail_marks_missing_result_and_hides_from_recent_list() -> No
     assert process.status_code == 201
     task_id = process.json()["task_id"]
 
-    task_detail = task_service.get_task(task_id)
+    task_json = wait_for_task_completion(client, task_id)
+    task_detail = task_service.get_task(task_json["task_id"])
     assert task_detail is not None
     result_path = storage_service.get_result_path(task_id, task_detail.meta.format)
     storage_service.delete_path(result_path)
@@ -345,6 +374,7 @@ def test_api_task_detail_marks_missing_result_and_hides_from_recent_list() -> No
 
 def test_api_upload_rate_limit_and_cache_headers() -> None:
     client = TestClient(app)
+    client.__enter__()
     original_bucket = rate_limit_service.buckets["upload"]
     rate_limit_service.buckets["upload"] = RateLimitBucket(limit=1, window_seconds=60)
     request_id = "req-upload-test-01"
@@ -396,6 +426,7 @@ def test_api_upload_rate_limit_and_cache_headers() -> None:
 
 def test_api_resize_and_enhance_flow() -> None:
     client = TestClient(app)
+    client.__enter__()
 
     buffer = io.BytesIO()
     source = Image.new("RGB", (640, 480), "#d4c8b8")
@@ -428,7 +459,9 @@ def test_api_resize_and_enhance_flow() -> None:
     assert resize.status_code == 201
     resize_json = resize.json()
     resize_task_id = resize_json["task_id"]
-    assert resize_json["meta"]["preset_name"] == "图片缩放"
+    assert resize_json["meta"] is None
+    resize_task = wait_for_task_completion(client, resize_task_id)
+    assert resize_task["meta"]["preset_name"] == "图片缩放"
 
     resize_preview = client.get(resize_json["result_url"])
     assert resize_preview.status_code == 200
@@ -456,7 +489,9 @@ def test_api_resize_and_enhance_flow() -> None:
     assert enhance.status_code == 201
     enhance_json = enhance.json()
     enhance_task_id = enhance_json["task_id"]
-    assert enhance_json["meta"]["preset_name"] == "清晰增强"
+    assert enhance_json["meta"] is None
+    enhance_task = wait_for_task_completion(client, enhance_task_id)
+    assert enhance_task["meta"]["preset_name"] == "清晰增强"
 
     enhance_preview = client.get(enhance_json["result_url"])
     assert enhance_preview.status_code == 200

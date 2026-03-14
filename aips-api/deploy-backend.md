@@ -24,9 +24,15 @@
 
 ### 2.1 推荐方式：直接运行启动文件
 
-后端配置文件：
+后端配置文件（`.env` 默认被 Git 忽略，仓库提供模板）：
 
-- [aips-api/.env](.env)
+- `.env`（本地配置，按需修改）
+- [`.env.example`](.env.example)（模板）
+
+生成本地 `.env`：
+
+- 推荐：在仓库根目录运行 `python init-env.py`
+- 或直接运行 `python start-aips.py`（若 `.env` 不存在，会从 `.env.example` 自动生成）
 
 首次准备依赖：
 
@@ -67,7 +73,7 @@ python -m app.run_dev
 {"status":"ok"}
 ```
 
-`python -m app.run_dev` 会自动读取 [.env](.env) 中的后端地址和端口，不需要再手动写 `--host`、`--port`。
+`python -m app.run_dev` 会自动读取本地 `.env` 中的后端地址和端口，不需要再手动写 `--host`、`--port`（若 `.env` 不存在请先从 `.env.example` 生成）。
 
 后端 `.env` 主要字段：
 
@@ -173,7 +179,7 @@ server {
 - `http://127.0.0.1:5173`
 - `http://localhost:5173`
 
-如果你修改了 [.env](.env) 里的 `AIPS_WEB_HOST` 或 `AIPS_WEB_PORT`，开发环境 CORS 会同步跟着更新。
+如果你修改了本地 `.env` 里的 `AIPS_WEB_HOST` 或 `AIPS_WEB_PORT`，开发环境 CORS 会同步跟着更新。
 
 如果生产环境前后端不是同域部署，需要修改 [app/main.py](app/main.py) 中的 `allow_origins`。
 

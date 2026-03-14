@@ -5,9 +5,9 @@
     <section class="hero hero--compact">
       <div class="hero__copy">
         <p class="eyebrow">RESIZE TOOL</p>
-        <h1>放大、缩小、统一尺寸。</h1>
+        <h1>改尺寸，直接导出。</h1>
         <p class="hero__lede">
-          适合最常见的尺寸处理。上传一张图，直接按像素改大小，结果在当前页即时预览。
+          上传一张图，按像素改宽高，当前页直接查看结果。
         </p>
       </div>
       <div class="hero__badge">
@@ -193,6 +193,7 @@ import {
   getRetryAfterSeconds,
   resizeImageTool,
   uploadImage,
+  waitForTaskCompletion,
 } from "../api/client";
 import AppTopNav from "../components/AppTopNav.vue";
 import FileDropzone from "../components/FileDropzone.vue";
@@ -418,13 +419,19 @@ async function handleProcess() {
   processing.value = true;
 
   try {
-    const nextResult = await resizeImageTool({
+    const submittedTask = await resizeImageTool({
       file_id: upload.value.file_id,
       width_px: resize.value.width_px,
       height_px: resize.value.height_px,
       output: output.value,
     });
-    result.value = nextResult;
+    const completedTask = await waitForTaskCompletion(submittedTask.task_id);
+    result.value = {
+      task_id: completedTask.task_id,
+      result_url: completedTask.result_url,
+      download_url: completedTask.download_url,
+      meta: completedTask.meta,
+    };
     lastSignature.value = currentSignature.value;
     await nextTick();
     resultPreviewRef.value?.scrollIntoView({ behavior: "smooth", block: "start" });

@@ -42,7 +42,7 @@ class ProcessResponse(BaseModel):
     task_id: str
     result_url: str
     download_url: str
-    meta: ResultMeta
+    meta: ResultMeta | None = None
 
 
 class TaskDetailResponse(BaseModel):
@@ -67,3 +67,10 @@ class TaskSummaryResponse(BaseModel):
 class TaskListResponse(BaseModel):
     items: list[TaskSummaryResponse]
     missing_count: int = 0
+
+
+class TaskStatusResponse(BaseModel):
+    task_id: str
+    status: str
+    progress: int
+    message: str

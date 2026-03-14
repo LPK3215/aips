@@ -5,16 +5,16 @@
     <section class="hero">
       <div class="hero__copy">
         <p class="eyebrow">AIPS / AI ID Photo Studio</p>
-        <h1>证件照，直接出片。</h1>
+        <h1>上传原图，</h1>
+        <h1>直接出片。</h1>
         <p class="hero__lede">
-          上传原图，套用规格，直接导出可提交文件。
+          上传一张原图，选规格、调构图，直接导出可提交文件。
         </p>
       </div>
       <div class="hero__badge">
         <span>真实像素修改</span>
         <span>JPEG 大小逼近</span>
         <span>导出即提交</span>
-        <RouterLink class="button button--secondary" to="/batch">批量自动导出</RouterLink>
       </div>
     </section>
 
@@ -24,14 +24,6 @@
           :preview-url="store.sourceUrl"
           :filename="store.upload?.original_filename ?? ''"
           @select="handleSelectFile"
-        />
-        <ImageInfoDisclosure
-          v-if="store.upload"
-          eyebrow="Source Info"
-          title="原图信息"
-          :summary="sourceInfoSummary"
-          hint="默认折叠，点开后可查看文件属性、像素和方向"
-          :items="sourceInfoItems"
         />
         <section v-if="store.restoredTaskDraft" class="panel panel--notice">
           <div class="panel__header">
@@ -77,6 +69,14 @@
           @change="store.setRender"
           @suggest="handleSuggest"
         />
+        <ImageInfoDisclosure
+          v-if="store.upload"
+          eyebrow="Source Info"
+          title="原图信息"
+          :summary="sourceInfoSummary"
+          hint="默认折叠，点开后可查看文件属性、像素和方向"
+          :items="sourceInfoItems"
+        />
 
         <section class="panel">
           <div class="panel__header">
@@ -96,15 +96,6 @@
           </div>
 
           <div class="status-stack">
-            <div class="status-card">
-              <strong>源图信息</strong>
-              <p v-if="store.upload">
-                {{ store.upload.width_px }} x {{ store.upload.height_px }} ·
-                {{ store.upload.format.toUpperCase() }} ·
-                {{ sourceFileSize }}
-              </p>
-              <p v-else>先上传图片，工作台才会进入可编辑状态。</p>
-            </div>
             <div class="status-card">
               <strong>当前输出</strong>
               <p>
@@ -128,6 +119,12 @@
             >
               {{ processButtonLabel }}
             </button>
+          </div>
+
+          <!-- 处理进度条 -->
+          <div v-if="processing" class="process-progress">
+            <div class="process-progress__bar" :style="{ width: `${processProgress}%` }"></div>
+            <div class="process-progress__text">{{ processProgress }}%</div>
           </div>
         </section>
 
@@ -196,6 +193,7 @@ import {
   processImage,
   suggestRender,
   uploadImage,
+  waitForTaskCompletion,
 } from "../api/client";
 import AdjustmentPanel from "../components/AdjustmentPanel.vue";
 import AppTopNav from "../components/AppTopNav.vue";
@@ -226,9 +224,10 @@ import { validateImageFile } from "../utils/uploadValidation";
 
 const store = useEditorStore();
 
-const processing = ref(false);
 const errorMessage = ref("");
+const processing = ref(false);
 const suggesting = ref(false);
+const processProgress = ref(0);
 const cropRef = ref<InstanceType<typeof CropViewport> | null>(null);
 const resultPreviewRef = ref<HTMLElement | null>(null);
 const activeSection = ref("presets");
@@ -256,7 +255,6 @@ const outputLimitMessage = computed(() =>
   buildOutputLimitHint(resolvedOutputPixels.value.width, resolvedOutputPixels.value.height, "当前导出"),
 );
 const canProcess = computed(() => Boolean(store.upload?.file_id && store.sourceUrl) && !outputLimitExceeded.value);
-const sourceFileSize = computed(() => (store.upload ? formatFileSize(store.upload.size_bytes) : ""));
 const sourceInfoSummary = computed(() => {
   if (!store.upload) {
     return "";
@@ -480,7 +478,7 @@ async function loadRecentTasks() {
   store.setRecentTasks(response.items, response.missing_count);
 }
 
-async function handleSelectFile(file: File) {
+async function handleSelectFile(file: File, onProgress?: (progress: number) => void) {
   errorMessage.value = "";
   const validationError = validateImageFile(file);
   if (validationError) {
@@ -489,7 +487,7 @@ async function handleSelectFile(file: File) {
   }
 
   try {
-    const upload = await uploadImage(file);
+    const upload = await uploadImage(file, onProgress);
     const sourceUrl = URL.createObjectURL(file);
     store.setUploadedSource({ upload, sourceUrl });
     await loadRecentTasks();
@@ -530,6 +528,7 @@ async function handleProcess() {
 
   errorMessage.value = "";
   processing.value = true;
+  processProgress.value = 0;
 
   try {
     const payload = {
@@ -544,7 +543,18 @@ async function handleProcess() {
       output: store.output,
     };
     const result = await processImage(payload);
-    store.lastProcess = result;
+    const completedTask = await waitForTaskCompletion(result.task_id, {
+      onUpdate: (status) => {
+        processProgress.value = status.progress;
+      },
+    });
+
+    store.lastProcess = {
+      task_id: completedTask.task_id,
+      result_url: completedTask.result_url,
+      download_url: completedTask.download_url,
+      meta: completedTask.meta,
+    };
     store.lastProcessSignature = createWorkbenchSignature({
       fileId: payload.file_id,
       presetId: payload.preset_id,
@@ -564,6 +574,7 @@ async function handleProcess() {
     retryCooldown.startCooldown(getRetryAfterSeconds(error));
   } finally {
     processing.value = false;
+    processProgress.value = 0;
   }
 }
 
@@ -579,3 +590,28 @@ onMounted(async () => {
   }
 });
 </script>
+
+<style scoped>
+.process-progress {
+  margin: 16px 0;
+  height: 8px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.process-progress__bar {
+  height: 100%;
+  background-color: #3b82f6;
+  transition: width 0.3s ease;
+}
+
+.process-progress__text {
+  position: absolute;
+  top: 12px;
+  right: 0;
+  font-size: 12px;
+  color: #666;
+}
+</style>

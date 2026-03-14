@@ -1,4 +1,5 @@
 import logging
+from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Request, status
 
@@ -22,6 +23,7 @@ from app.services.image_service import image_service
 from app.services.preset_service import preset_service
 from app.services.storage_service import storage_service
 from app.services.task_service import task_service
+from app.services.task_queue_service import task_queue_service
 
 
 router = APIRouter()
@@ -44,7 +46,7 @@ def _save_task_or_cleanup(artifact, params: dict) -> None:
 
 
 @router.post("/process", response_model=ProcessResponse, status_code=status.HTTP_201_CREATED)
-def process_image(request: Request, payload: ProcessRequest) -> ProcessResponse:
+async def process_image(request: Request, payload: ProcessRequest) -> ProcessResponse:
     upload_path = storage_service.get_upload_path(payload.file_id)
     if upload_path is None:
         raise HTTPException(status_code=404, detail="原始图片不存在，请重新上传。")
@@ -55,114 +57,131 @@ def process_image(request: Request, payload: ProcessRequest) -> ProcessResponse:
         if preset is None:
             raise HTTPException(status_code=404, detail="所选规格模板不存在。")
 
-    try:
-        with heavy_job_slot():
-            artifact = image_service.process_image(
-                source_path=upload_path,
-                request=payload,
-                output_dir=storage_service.results_dir,
-                preset_name=preset.name if preset else None,
+    # 创建一个任务函数，用于在队列中执行
+    def process_task():
+        try:
+            with heavy_job_slot():
+                artifact = image_service.process_image(
+                    source_path=upload_path,
+                    request=payload,
+                    output_dir=storage_service.results_dir,
+                    preset_name=preset.name if preset else None,
+                    task_id=task_id,
+                )
+            _save_task_or_cleanup(artifact, params=payload.model_dump(mode="json"))
+            logger.info(
+                "event=process_completed request_id=%s file_id=%s task_id=%s preset_id=%s width_px=%s height_px=%s format=%s size_kb=%s",
+                _request_id(request),
+                payload.file_id,
+                artifact.task_id,
+                payload.preset_id or "",
+                artifact.meta.width_px,
+                artifact.meta.height_px,
+                artifact.meta.format,
+                artifact.meta.size_kb,
             )
-    except BusyError as exc:
-        raise HTTPException(status_code=429, detail=str(exc)) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+            return artifact
+        except Exception as exc:
+            logger.error(f"Task failed: {exc}")
+            raise
 
-    _save_task_or_cleanup(artifact, params=payload.model_dump(mode="json"))
-    logger.info(
-        "event=process_completed request_id=%s file_id=%s task_id=%s preset_id=%s width_px=%s height_px=%s format=%s size_kb=%s",
-        _request_id(request),
-        payload.file_id,
-        artifact.task_id,
-        payload.preset_id or "",
-        artifact.meta.width_px,
-        artifact.meta.height_px,
-        artifact.meta.format,
-        artifact.meta.size_kb,
-    )
+    # 生成任务ID并添加到队列
+    task_id = uuid4().hex
+    await task_queue_service.add_task(task_id, process_task)
 
+    # 返回任务信息
     return ProcessResponse(
-        task_id=artifact.task_id,
-        result_url=f"/api/v1/files/result/{artifact.task_id}",
-        download_url=f"/api/v1/files/download/{artifact.task_id}",
-        meta=artifact.meta,
+        task_id=task_id,
+        result_url=f"/api/v1/files/result/{task_id}",
+        download_url=f"/api/v1/files/download/{task_id}",
+        meta=None,  # 元数据将在任务完成后可用
     )
 
 
 @router.post("/resize", response_model=ProcessResponse, status_code=status.HTTP_201_CREATED)
-def resize_image(request: Request, payload: ResizeRequest) -> ProcessResponse:
+async def resize_image(request: Request, payload: ResizeRequest) -> ProcessResponse:
     upload_path = storage_service.get_upload_path(payload.file_id)
     if upload_path is None:
         raise HTTPException(status_code=404, detail="原始图片不存在，请重新上传。")
 
-    try:
-        with heavy_job_slot():
-            artifact = image_service.resize_image(
-                source_path=upload_path,
-                request=payload,
-                output_dir=storage_service.results_dir,
-                preset_name="图片缩放",
+    def process_task():
+        try:
+            with heavy_job_slot():
+                artifact = image_service.resize_image(
+                    source_path=upload_path,
+                    request=payload,
+                    output_dir=storage_service.results_dir,
+                    preset_name="图片缩放",
+                    task_id=task_id,
+                )
+            _save_task_or_cleanup(artifact, params=payload.model_dump(mode="json"))
+            logger.info(
+                "event=resize_completed request_id=%s file_id=%s task_id=%s width_px=%s height_px=%s format=%s size_kb=%s",
+                _request_id(request),
+                payload.file_id,
+                artifact.task_id,
+                artifact.meta.width_px,
+                artifact.meta.height_px,
+                artifact.meta.format,
+                artifact.meta.size_kb,
             )
-    except BusyError as exc:
-        raise HTTPException(status_code=429, detail=str(exc)) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+            return artifact
+        except Exception as exc:
+            logger.error(f"Task failed: {exc}")
+            raise
 
-    _save_task_or_cleanup(artifact, params=payload.model_dump(mode="json"))
-    logger.info(
-        "event=resize_completed request_id=%s file_id=%s task_id=%s width_px=%s height_px=%s format=%s size_kb=%s",
-        _request_id(request),
-        payload.file_id,
-        artifact.task_id,
-        artifact.meta.width_px,
-        artifact.meta.height_px,
-        artifact.meta.format,
-        artifact.meta.size_kb,
-    )
+    task_id = uuid4().hex
+    await task_queue_service.add_task(task_id, process_task)
+
     return ProcessResponse(
-        task_id=artifact.task_id,
-        result_url=f"/api/v1/files/result/{artifact.task_id}",
-        download_url=f"/api/v1/files/download/{artifact.task_id}",
-        meta=artifact.meta,
+        task_id=task_id,
+        result_url=f"/api/v1/files/result/{task_id}",
+        download_url=f"/api/v1/files/download/{task_id}",
+        meta=None,
     )
 
 
 @router.post("/enhance", response_model=ProcessResponse, status_code=status.HTTP_201_CREATED)
-def enhance_image(request: Request, payload: EnhanceRequest) -> ProcessResponse:
+async def enhance_image(request: Request, payload: EnhanceRequest) -> ProcessResponse:
     upload_path = storage_service.get_upload_path(payload.file_id)
     if upload_path is None:
         raise HTTPException(status_code=404, detail="原始图片不存在，请重新上传。")
 
-    try:
-        with heavy_job_slot():
-            artifact = image_service.enhance_image(
-                source_path=upload_path,
-                request=payload,
-                output_dir=storage_service.results_dir,
-                preset_name="清晰增强",
+    def process_task():
+        try:
+            with heavy_job_slot():
+                artifact = image_service.enhance_image(
+                    source_path=upload_path,
+                    request=payload,
+                    output_dir=storage_service.results_dir,
+                    preset_name="清晰增强",
+                    task_id=task_id,
+                )
+            _save_task_or_cleanup(artifact, params=payload.model_dump(mode="json"))
+            logger.info(
+                "event=enhance_completed request_id=%s file_id=%s task_id=%s scale_factor=%s denoise=%s sharpness=%s format=%s size_kb=%s",
+                _request_id(request),
+                payload.file_id,
+                artifact.task_id,
+                payload.scale_factor,
+                payload.denoise,
+                payload.sharpness,
+                artifact.meta.format,
+                artifact.meta.size_kb,
             )
-    except BusyError as exc:
-        raise HTTPException(status_code=429, detail=str(exc)) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+            return artifact
+        except Exception as exc:
+            logger.error(f"Task failed: {exc}")
+            raise
 
-    _save_task_or_cleanup(artifact, params=payload.model_dump(mode="json"))
-    logger.info(
-        "event=enhance_completed request_id=%s file_id=%s task_id=%s scale_factor=%s denoise=%s sharpness=%s format=%s size_kb=%s",
-        _request_id(request),
-        payload.file_id,
-        artifact.task_id,
-        payload.scale_factor,
-        payload.denoise,
-        payload.sharpness,
-        artifact.meta.format,
-        artifact.meta.size_kb,
-    )
+    task_id = uuid4().hex
+    await task_queue_service.add_task(task_id, process_task)
+
     return ProcessResponse(
-        task_id=artifact.task_id,
-        result_url=f"/api/v1/files/result/{artifact.task_id}",
-        download_url=f"/api/v1/files/download/{artifact.task_id}",
-        meta=artifact.meta,
+        task_id=task_id,
+        result_url=f"/api/v1/files/result/{task_id}",
+        download_url=f"/api/v1/files/download/{task_id}",
+        meta=None,
     )
 
 
@@ -410,7 +429,7 @@ def process_batch_auto(request: Request, payload: BatchAutoProcessRequest) -> Ba
 
 
 @router.post("/compose-sheet", response_model=ProcessResponse, status_code=status.HTTP_201_CREATED)
-def compose_sheet(request: Request, payload: ComposeSheetRequest) -> ProcessResponse:
+async def compose_sheet(request: Request, payload: ComposeSheetRequest) -> ProcessResponse:
     source_task = task_service.get_task(payload.task_id)
     if source_task is None:
         raise HTTPException(status_code=404, detail="原始处理结果不存在。")
@@ -419,44 +438,48 @@ def compose_sheet(request: Request, payload: ComposeSheetRequest) -> ProcessResp
     if not source_path.exists():
         raise HTTPException(status_code=404, detail="原始处理结果文件不存在（可能已过期被清理）。")
 
-    try:
-        with heavy_job_slot():
-            output = payload.output.model_copy(deep=True)
-            output.dpi = payload.page_size.dpi
-            artifact = image_service.compose_sheet(
-                source_path=source_path,
-                page_size=payload.page_size,
-                margin_mm=payload.margin_mm,
-                gap_mm=payload.gap_mm,
-                cols=payload.cols,
-                rows=payload.rows,
-                copies=payload.copies,
-                show_cut_lines=payload.show_cut_lines,
-                cut_line_color=payload.cut_line_color,
-                cut_line_width=payload.cut_line_width,
-                output=output,
-                output_dir=storage_service.results_dir,
-                preset_name="打印排版",
+    def process_task():
+        try:
+            with heavy_job_slot():
+                output = payload.output.model_copy(deep=True)
+                output.dpi = payload.page_size.dpi
+                artifact = image_service.compose_sheet(
+                    source_path=source_path,
+                    page_size=payload.page_size,
+                    margin_mm=payload.margin_mm,
+                    gap_mm=payload.gap_mm,
+                    cols=payload.cols,
+                    rows=payload.rows,
+                    copies=payload.copies,
+                    show_cut_lines=payload.show_cut_lines,
+                    cut_line_color=payload.cut_line_color,
+                    cut_line_width=payload.cut_line_width,
+                    output=output,
+                    output_dir=storage_service.results_dir,
+                    preset_name="打印排版",
+                    task_id=task_id,
+                )
+            _save_task_or_cleanup(artifact, params=payload.model_dump(mode="json"))
+            logger.info(
+                "event=compose_sheet_completed request_id=%s source_task_id=%s task_id=%s width_px=%s height_px=%s format=%s",
+                _request_id(request),
+                payload.task_id,
+                artifact.task_id,
+                artifact.meta.width_px,
+                artifact.meta.height_px,
+                artifact.meta.format,
             )
-    except BusyError as exc:
-        raise HTTPException(status_code=429, detail=str(exc)) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+            return artifact
+        except Exception as exc:
+            logger.error(f"Task failed: {exc}")
+            raise
 
-    _save_task_or_cleanup(artifact, params=payload.model_dump(mode="json"))
-    logger.info(
-        "event=compose_sheet_completed request_id=%s source_task_id=%s task_id=%s width_px=%s height_px=%s format=%s",
-        _request_id(request),
-        payload.task_id,
-        artifact.task_id,
-        artifact.meta.width_px,
-        artifact.meta.height_px,
-        artifact.meta.format,
-    )
+    task_id = uuid4().hex
+    await task_queue_service.add_task(task_id, process_task)
 
     return ProcessResponse(
-        task_id=artifact.task_id,
-        result_url=f"/api/v1/files/result/{artifact.task_id}",
-        download_url=f"/api/v1/files/download/{artifact.task_id}",
-        meta=artifact.meta,
+        task_id=task_id,
+        result_url=f"/api/v1/files/result/{task_id}",
+        download_url=f"/api/v1/files/download/{task_id}",
+        meta=None,
     )

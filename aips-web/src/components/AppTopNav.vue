@@ -30,9 +30,9 @@ import { useRoute } from "vue-router";
 
 const route = useRoute();
 const items = [
-  { to: "/", label: "证件照工作台", kicker: "Workspace", note: "单张精修、构图和导出" },
-  { to: "/batch", label: "批量导出", kicker: "Batch", note: "统一参数，多张一次处理" },
-  { to: "/tools", label: "常用工具", kicker: "Tools", note: "缩放、增强等独立工具页" },
+  { to: "/", label: "证件照工作台", kicker: "Workspace", note: "单张精修、构图与导出" },
+  { to: "/batch", label: "批量导出", kicker: "Batch", note: "统一参数、批量处理与导出" },
+  { to: "/tools", label: "常用工具", kicker: "Tools", note: "缩放增强、单项快速处理" },
 ];
 
 function isActive(target: string) {

@@ -74,6 +74,7 @@ export interface OutputState {
   target_size_kb_max: number | null;
   filename: string;
   background_color: string;
+  background_image_id: string | null;
   replace_background: boolean;
   replace_feather: number;
 }
@@ -119,11 +120,25 @@ export interface ResultMeta {
   preset_name?: string | null;
 }
 
+export interface TaskSubmissionResponse {
+  task_id: string;
+  result_url: string;
+  download_url: string;
+  meta: ResultMeta | null;
+}
+
 export interface ProcessResponse {
   task_id: string;
   result_url: string;
   download_url: string;
   meta: ResultMeta;
+}
+
+export interface TaskStatusResponse {
+  task_id: string;
+  status: string;
+  progress: number;
+  message: string;
 }
 
 export interface BatchProcessItemResult {

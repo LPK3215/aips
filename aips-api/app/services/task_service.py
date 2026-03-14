@@ -18,8 +18,9 @@ class TaskService:
         return self.tasks_dir / f"{safe_id}.json"
 
     def _result_path(self, task_id: str, output_format: str) -> Path:
+        safe_id = normalize_hex32(task_id)
         extension = ".jpg" if output_format == "jpg" else ".png"
-        return self.results_dir / f"{task_id}{extension}"
+        return self.results_dir / f"{safe_id}{extension}"
 
     def _load_task_payload(self, path: Path) -> dict | None:
         try:
@@ -28,7 +29,10 @@ class TaskService:
             return None
 
     def _result_exists(self, task_id: str, output_format: str) -> bool:
-        return self._result_path(task_id, output_format).exists()
+        try:
+            return self._result_path(task_id, output_format).exists()
+        except ValueError:
+            return False
 
     def save_task(self, artifact: ProcessedArtifact, params: dict | None = None) -> None:
         payload = artifact.to_task_response().model_dump(mode="json")

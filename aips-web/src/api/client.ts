@@ -4,8 +4,6 @@ import type {
   EnhanceToolState,
   PresetCollectionResponse,
   ProcessRequestPayload,
-  ProcessResponse,
-  RenderState,
   ResizeToolState,
   SizeFormState,
   AdjustmentState,
@@ -13,6 +11,8 @@ import type {
   SuggestRenderResponse,
   TaskDetailResponse,
   TaskListResponse,
+  TaskStatusResponse,
+  TaskSubmissionResponse,
   UploadBatchResponse,
   UploadResponse,
 } from "../types";
@@ -88,10 +88,50 @@ export async function fetchPresets(): Promise<PresetCollectionResponse> {
   return unwrap<PresetCollectionResponse>(response);
 }
 
-export async function uploadImage(file: File): Promise<UploadResponse> {
+export async function uploadImage(file: File, onProgress?: (progress: number) => void): Promise<UploadResponse> {
   const formData = new FormData();
   formData.append("file", file);
 
+  // 如果提供了进度回调，使用XMLHttpRequest来跟踪上传进度
+  if (onProgress) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `${apiBase}/api/v1/files/upload`);
+
+      xhr.upload.addEventListener("progress", (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          onProgress(progress);
+        }
+      });
+
+      xhr.addEventListener("load", () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const response = JSON.parse(xhr.responseText);
+            resolve(response);
+          } catch {
+            reject(new ApiError("上传失败：无效的响应格式", { status: xhr.status }));
+          }
+        } else {
+          try {
+            const errorData = JSON.parse(xhr.responseText);
+            reject(new ApiError(errorData.detail || "上传失败", { status: xhr.status }));
+          } catch {
+            reject(new ApiError("上传失败", { status: xhr.status }));
+          }
+        }
+      });
+
+      xhr.addEventListener("error", () => {
+        reject(new ApiError("上传失败：网络错误", { status: 0 }));
+      });
+
+      xhr.send(formData);
+    });
+  }
+
+  // 否则使用fetch
   const response = await fetch(`${apiBase}/api/v1/files/upload`, {
     method: "POST",
     body: formData,
@@ -114,7 +154,7 @@ export async function uploadImagesBatch(files: File[]): Promise<UploadBatchRespo
   return unwrap<UploadBatchResponse>(response);
 }
 
-export async function processImage(payload: ProcessRequestPayload): Promise<ProcessResponse> {
+export async function processImage(payload: ProcessRequestPayload): Promise<TaskSubmissionResponse> {
   const response = await fetch(`${apiBase}/api/v1/images/process`, {
     method: "POST",
     headers: {
@@ -123,7 +163,7 @@ export async function processImage(payload: ProcessRequestPayload): Promise<Proc
     body: JSON.stringify(payload),
   });
 
-  return unwrap<ProcessResponse>(response);
+  return unwrap<TaskSubmissionResponse>(response);
 }
 
 export async function processBatchAuto(payload: {
@@ -199,7 +239,7 @@ export async function composeSheet(payload: {
     filename?: string | null;
     background_color: string;
   };
-}): Promise<ProcessResponse> {
+}): Promise<TaskSubmissionResponse> {
   const response = await fetch(`${apiBase}/api/v1/images/compose-sheet`, {
     method: "POST",
     headers: {
@@ -207,7 +247,7 @@ export async function composeSheet(payload: {
     },
     body: JSON.stringify(payload),
   });
-  return unwrap<ProcessResponse>(response);
+  return unwrap<TaskSubmissionResponse>(response);
 }
 
 export async function downloadZipArchive(payload: {
@@ -240,7 +280,7 @@ export async function resizeImageTool(payload: {
   width_px: ResizeToolState["width_px"];
   height_px: ResizeToolState["height_px"];
   output: BasicOutputState;
-}): Promise<ProcessResponse> {
+}): Promise<TaskSubmissionResponse> {
   const response = await fetch(`${apiBase}/api/v1/images/resize`, {
     method: "POST",
     headers: {
@@ -248,7 +288,7 @@ export async function resizeImageTool(payload: {
     },
     body: JSON.stringify(payload),
   });
-  return unwrap<ProcessResponse>(response);
+  return unwrap<TaskSubmissionResponse>(response);
 }
 
 export async function enhanceImageTool(payload: {
@@ -259,7 +299,7 @@ export async function enhanceImageTool(payload: {
   contrast: EnhanceToolState["contrast"];
   auto_contrast: EnhanceToolState["auto_contrast"];
   output: BasicOutputState;
-}): Promise<ProcessResponse> {
+}): Promise<TaskSubmissionResponse> {
   const response = await fetch(`${apiBase}/api/v1/images/enhance`, {
     method: "POST",
     headers: {
@@ -267,5 +307,40 @@ export async function enhanceImageTool(payload: {
     },
     body: JSON.stringify(payload),
   });
-  return unwrap<ProcessResponse>(response);
+  return unwrap<TaskSubmissionResponse>(response);
+}
+
+export async function getTaskStatus(taskId: string): Promise<TaskStatusResponse> {
+  const response = await fetch(`${apiBase}/api/v1/tasks/${taskId}/status`);
+  return unwrap<TaskStatusResponse>(response);
+}
+
+export async function waitForTaskCompletion(
+  taskId: string,
+  options?: {
+    intervalMs?: number;
+    timeoutMs?: number;
+    onUpdate?: (status: TaskStatusResponse) => void;
+  },
+): Promise<TaskDetailResponse> {
+  const intervalMs = options?.intervalMs ?? 800;
+  const timeoutMs = options?.timeoutMs ?? 120000;
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const status = await getTaskStatus(taskId);
+    options?.onUpdate?.(status);
+
+    if (status.status === "completed") {
+      return fetchTask(taskId);
+    }
+
+    if (status.status === "failed") {
+      throw new ApiError(status.message || "处理失败。", { status: 500 });
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+
+  throw new ApiError("任务处理超时，请稍后在结果页查看。", { status: 504 });
 }

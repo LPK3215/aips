@@ -11,5 +11,6 @@ aips-web/.env
 aips-api/storage/uploads/
 aips-api/storage/results/
 aips-api/storage/tasks/
+aips-api/storage/temp/
 aips-web/node_modules/
 aips-web/dist/

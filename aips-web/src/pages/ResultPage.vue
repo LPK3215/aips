@@ -5,8 +5,8 @@
     <section class="hero hero--compact">
       <div class="hero__copy">
         <p class="eyebrow">RESULT SHEET</p>
-        <h1>处理结果已经真实生成。</h1>
-        <p class="hero__lede">这里展示的是后端导出的文件，而不是浏览器里临时拼出来的视觉效果。</p>
+        <h1>结果已生成，可直接下载。</h1>
+        <p class="hero__lede">这里显示的是后端真实生成的结果文件，可直接下载或继续排版。</p>
       </div>
       <div class="hero__badge">
         <span>真实导出文件</span>
@@ -162,7 +162,14 @@
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-import { buildApiUrl, composeSheet, fetchTask, formatApiError, getRetryAfterSeconds } from "../api/client";
+import {
+  buildApiUrl,
+  composeSheet,
+  fetchTask,
+  formatApiError,
+  getRetryAfterSeconds,
+  waitForTaskCompletion,
+} from "../api/client";
 import AppTopNav from "../components/AppTopNav.vue";
 import AppSelect from "../components/AppSelect.vue";
 import ResultMetaCard from "../components/ResultMetaCard.vue";
@@ -247,6 +254,7 @@ async function handleComposeSheet() {
       },
     });
 
+    await waitForTaskCompletion(response.task_id);
     await router.push(`/result/${response.task_id}`);
   } catch (error) {
     sheetError.value = formatApiError(error, "生成排版失败。");

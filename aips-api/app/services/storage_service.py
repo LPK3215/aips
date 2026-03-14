@@ -41,6 +41,14 @@ class StorageService:
             )
         return extension
 
+    def _validate_mime_type(self, content_type: str | None) -> None:
+        allowed_mime_types = {"image/jpeg", "image/png", "image/jpg"}
+        if content_type and content_type not in allowed_mime_types:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="仅支持 JPG、JPEG、PNG 格式的图像文件。",
+            )
+
     def _allocate_upload_path(self, extension: str) -> tuple[str, Path, Path]:
         file_id = uuid4().hex
         target_path = self.uploads_dir / f"{file_id}{extension}"
@@ -70,6 +78,7 @@ class StorageService:
     async def save_upload_stream(self, upload: UploadFile) -> UploadRecord:
         filename = upload.filename or "upload.jpg"
         extension = self._validate_extension(filename)
+        self._validate_mime_type(upload.content_type)
         file_id, target_path, tmp_path = self._allocate_upload_path(extension)
         size_bytes = 0
 

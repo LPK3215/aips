@@ -5,9 +5,10 @@
     <section class="hero hero--compact">
       <div class="hero__copy">
         <p class="eyebrow">BATCH EXPORT</p>
-        <h1>批量自动居中，一次性导出。</h1>
+        <h1>统一参数，</h1>
+        <h1>批量导出。</h1>
         <p class="hero__lede">
-          适合已经“基本构图正确”的多张照片。系统会对每张图自动检测人脸并生成构图建议，然后按同一规格与参数真实导出。
+          上传多张原图，统一规格与导出参数，一次批量处理并导出。
         </p>
       </div>
       <div class="hero__badge">
@@ -226,6 +227,7 @@ const output = ref<OutputState>({
   target_size_kb_max: 200,
   filename: "id-photo-batch",
   background_color: "#ffffff",
+  background_image_id: null,
   replace_background: false,
   replace_feather: 6,
 });

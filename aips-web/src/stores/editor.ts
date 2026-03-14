@@ -43,6 +43,7 @@ const defaultOutput = (): OutputState => ({
   target_size_kb_max: 200,
   filename: "id-photo-result",
   background_color: "#ffffff",
+  background_image_id: null,
   replace_background: false,
   replace_feather: 6,
 });
@@ -186,6 +187,7 @@ function normalizeProcessPayload(payload: unknown): ProcessRequestPayload | null
         targetSizeMin !== null && targetSizeMax !== null && targetSizeMin > targetSizeMax ? targetSizeMin : targetSizeMax,
       filename: normalizeString(output.filename, outputDefaults.filename),
       background_color: normalizeHexColor(output.background_color, outputDefaults.background_color),
+      background_image_id: normalizeNullableString(output.background_image_id),
       replace_background: normalizeBoolean(output.replace_background, outputDefaults.replace_background),
       replace_feather: normalizeNumber(output.replace_feather, outputDefaults.replace_feather, { min: 0, max: 24 }),
     },

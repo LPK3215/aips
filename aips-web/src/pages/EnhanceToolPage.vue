@@ -5,9 +5,9 @@
     <section class="hero hero--compact">
       <div class="hero__copy">
         <p class="eyebrow">ENHANCE TOOL</p>
-        <h1>常见模糊和噪点，做轻度增强。</h1>
+        <h1>轻度增强，直接预览。</h1>
         <p class="hero__lede">
-          适合轻度发灰、边缘不够清楚、细节有些糊的图片。当前提供放大、去噪、锐化和对比度增强。
+          上传一张图，做放大、去噪、锐化和对比度增强。
         </p>
       </div>
       <div class="hero__badge">
@@ -174,7 +174,14 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref } from "vue";
 
-import { buildApiUrl, enhanceImageTool, formatApiError, getRetryAfterSeconds, uploadImage } from "../api/client";
+import {
+  buildApiUrl,
+  enhanceImageTool,
+  formatApiError,
+  getRetryAfterSeconds,
+  uploadImage,
+  waitForTaskCompletion,
+} from "../api/client";
 import AppTopNav from "../components/AppTopNav.vue";
 import AppSelect from "../components/AppSelect.vue";
 import FileDropzone from "../components/FileDropzone.vue";
@@ -222,7 +229,7 @@ const retryCooldown = useRetryCooldown();
 
 const scaleFactorOptions = [
   { value: "1", label: "1.0x", description: "不放大，只做增强" },
-  { value: "1.5", label: "1.5x", description: "最常用的轻度放大" },
+  { value: "1.5", label: "1.5x", description: "常用的轻度放大" },
   { value: "2", label: "2.0x", description: "适合较小图再放大" },
   { value: "3", label: "3.0x", description: "放大更明显，但更吃原图质量" },
 ] as const;
@@ -377,7 +384,7 @@ async function handleProcess() {
   processing.value = true;
 
   try {
-    const nextResult = await enhanceImageTool({
+    const submittedTask = await enhanceImageTool({
       file_id: upload.value.file_id,
       scale_factor: enhance.value.scale_factor,
       denoise: enhance.value.denoise,
@@ -386,7 +393,13 @@ async function handleProcess() {
       auto_contrast: enhance.value.auto_contrast,
       output: output.value,
     });
-    result.value = nextResult;
+    const completedTask = await waitForTaskCompletion(submittedTask.task_id);
+    result.value = {
+      task_id: completedTask.task_id,
+      result_url: completedTask.result_url,
+      download_url: completedTask.download_url,
+      meta: completedTask.meta,
+    };
     lastSignature.value = currentSignature.value;
     await nextTick();
     resultPreviewRef.value?.scrollIntoView({ behavior: "smooth", block: "start" });

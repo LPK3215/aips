@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="aipsGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0c7963" />
+      <stop offset="100%" stop-color="#23463d" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#aipsGradient)" />
+  <path d="M32 13 16 51h8.8l2.8-7.6h16.9l2.8 7.6H56L40 13Zm-1.4 11.1 6.5 12.5H24.3Z" fill="#f7f3eb" />
+</svg>

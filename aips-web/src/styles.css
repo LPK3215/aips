@@ -110,19 +110,17 @@ select {
 }
 
 .app-topnav {
-  position: sticky;
-  top: 14px;
-  z-index: 25;
+  position: static;
   margin-bottom: 22px;
 }
 
 .app-topnav__rail {
   display: grid;
-  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
-  gap: 12px;
-  padding: 12px;
+  grid-template-columns: minmax(190px, 228px) minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px;
   border: 1px solid rgba(25, 35, 31, 0.1);
-  border-radius: 26px;
+  border-radius: 24px;
   background:
     linear-gradient(135deg, rgba(249, 246, 240, 0.94), rgba(241, 235, 222, 0.88)),
     rgba(249, 246, 240, 0.9);
@@ -132,11 +130,11 @@ select {
 
 .app-topnav__meta {
   display: grid;
-  gap: 6px;
+  gap: 5px;
   align-content: center;
   min-width: 0;
-  padding: 14px 18px;
-  border-radius: 20px;
+  padding: 12px 16px;
+  border-radius: 18px;
   background: linear-gradient(145deg, rgba(11, 31, 28, 0.96), rgba(18, 54, 47, 0.9));
   color: #f7f0e7;
 }
@@ -152,13 +150,14 @@ select {
 
 .app-topnav__title {
   font-family: "Cormorant Garamond", serif;
-  font-size: 1.9rem;
-  line-height: 0.92;
+  font-size: 1.55rem;
+  line-height: 0.98;
 }
 
 .app-topnav__note {
   color: rgba(247, 240, 231, 0.74);
-  line-height: 1.45;
+  font-size: 0.9rem;
+  line-height: 1.4;
 }
 
 .app-topnav__links {
@@ -169,13 +168,13 @@ select {
 
 .app-topnav__link {
   position: relative;
-  min-height: 92px;
+  min-height: 78px;
   display: grid;
-  gap: 4px;
+  gap: 3px;
   align-content: center;
-  padding: 16px 18px;
+  padding: 14px 16px;
   border: 1px solid rgba(25, 35, 31, 0.1);
-  border-radius: 20px;
+  border-radius: 18px;
   background: rgba(255, 255, 255, 0.56);
   color: var(--ink-soft);
   text-align: left;
@@ -188,8 +187,8 @@ select {
 
 .app-topnav__link::after {
   position: absolute;
-  inset: auto 18px 14px;
-  height: 3px;
+  inset: auto 16px 12px;
+  height: 2px;
   border-radius: 999px;
   background: linear-gradient(90deg, rgba(12, 121, 99, 0.9), rgba(187, 93, 42, 0.9));
   transform: scaleX(0.25);
@@ -222,18 +221,19 @@ select {
   color: rgba(25, 35, 31, 0.5);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  font-size: 0.68rem;
+  font-size: 0.64rem;
   font-weight: 700;
 }
 
 .app-topnav__link-label {
-  font-size: 1rem;
-  line-height: 1.2;
+  font-size: 0.96rem;
+  line-height: 1.18;
 }
 
 .app-topnav__link-note {
   color: rgba(25, 35, 31, 0.62);
-  line-height: 1.4;
+  font-size: 0.9rem;
+  line-height: 1.32;
 }
 
 .hero {
@@ -430,6 +430,10 @@ select {
   gap: 12px;
 }
 
+.result-preview .panel__actions {
+  margin-bottom: 28px;
+}
+
 .chip {
   padding: 8px 12px;
   border-radius: 999px;
@@ -517,7 +521,7 @@ select {
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  padding: 18px 20px;
+  padding: 20px 20px 22px;
   list-style: none;
   cursor: pointer;
 }
@@ -581,7 +585,7 @@ select {
   gap: 12px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: 0;
-  padding: 0 20px 20px;
+  padding: 16px 20px 20px;
   border-top: 1px solid rgba(25, 35, 31, 0.08);
 }
 
@@ -974,6 +978,22 @@ select {
   margin-bottom: 16px;
 }
 
+.output-settings .form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px;
+}
+
+.output-settings .field {
+  gap: 10px;
+}
+
+.output-settings .field > span {
+  display: flex;
+  align-items: center;
+  min-height: 22px;
+}
+
 .toggle {
   flex-direction: row;
   justify-content: space-between;
@@ -1010,6 +1030,55 @@ select {
 
 .field .app-select {
   width: 100%;
+}
+
+.output-settings .field input:not([type="range"]):not([type="color"]),
+.output-settings .field .app-select__trigger,
+.output-settings .field--toggle {
+  min-height: 56px;
+  border-radius: 18px;
+}
+
+.output-settings .field input:not([type="range"]):not([type="color"]) {
+  padding-inline: 18px;
+}
+
+.output-settings .field .app-select__trigger {
+  padding: 14px 52px 14px 18px;
+}
+
+.output-settings .field .app-select__description {
+  font-size: 0.8rem;
+  line-height: 1.25;
+}
+
+.output-settings .field input[type="color"] {
+  min-height: 56px;
+  border-radius: 18px;
+  padding: 6px;
+}
+
+.output-settings .field--toggle {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 18px;
+  border: 1px solid rgba(25, 35, 31, 0.12);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.output-settings .field--toggle > span {
+  min-height: auto;
+  color: var(--ink);
+}
+
+.output-settings .field--toggle input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 0;
 }
 
 .app-select {
@@ -1777,7 +1846,7 @@ details > summary::marker {
   }
 
   .app-topnav {
-    top: 8px;
+    margin-bottom: 18px;
   }
 
   .panel {
