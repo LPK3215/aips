@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIPS — 项目全景观览</title>
+  <link rel="stylesheet" href="./style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="scroll-progress"></div>
+  <nav class="navbar">
+    <div class="nav-brand">AIPS</div>
+    <div class="nav-links">
+      <a href="#hero" class="nav-link active">概览</a>
+      <a href="#intro" class="nav-link">简介</a>
+      <a href="#architecture" class="nav-link">架构</a>
+      <a href="#tech-stack" class="nav-link">技术栈</a>
+      <a href="#structure" class="nav-link">目录结构</a>
+      <a href="#quickstart" class="nav-link">快速开始</a>
+      <a href="#docs" class="nav-link">文档索引</a>
+    </div>
+    <button class="theme-toggle" id="themeToggle" title="切换主题">🌙</button>
+  </nav>
+
+  <section id="hero" class="hero">
+    <div class="hero-content">
+      <div class="hero-badges">
+        <span class="badge">证件照处理</span>
+        <span class="badge">FastAPI</span>
+        <span class="badge">Vue 3</span>
+        <span class="badge">图像处理</span>
+      </div>
+      <h1 class="hero-title">AIPS</h1>
+      <p class="hero-subtitle">AI ID Photo Studio — 证件照智能处理平台 MVP</p>
+      <div class="hero-meta">
+        <span class="meta-item">v1.0.0</span>
+        <span class="meta-divider">·</span>
+        <span class="meta-item">FastAPI + Pillow + OpenCV</span>
+        <span class="meta-divider">·</span>
+        <span class="meta-item">Vue 3 + TypeScript</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="intro" class="section">
+    <h2 class="section-title">项目简介</h2>
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-icon">🎯</div>
+        <h3>核心价值</h3>
+        <p>证件照智能处理平台，采用前后端分离架构，提供智能裁剪和背景替换功能。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">💡</div>
+        <h3>技术亮点</h3>
+        <ul class="feature-list">
+          <li>FastAPI 后端图像处理</li>
+          <li>Pillow + OpenCV 图像处理</li>
+          <li>Vue 3 + TypeScript 前端</li>
+          <li>前后端独立 .env 配置</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="architecture" class="section">
+    <h2 class="section-title">架构全景</h2>
+    <div class="arch-container">
+      <svg viewBox="0 0 1000 280" class="arch-svg" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#059669"/><stop offset="100%" style="stop-color:#0d9488"/></linearGradient>
+          <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#4f46e5"/><stop offset="100%" style="stop-color:#7c3aed"/></linearGradient>
+          <linearGradient id="g3" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#d97706"/><stop offset="100%" style="stop-color:#ea580c"/></linearGradient>
+        </defs>
+        <rect x="50" y="20" width="900" height="70" rx="12" fill="#1e293b" stroke="#334155" stroke-width="2"/>
+        <text x="70" y="42" fill="#94a3b8" font-size="13" font-family="Inter">前端 — aips-web</text>
+        <rect x="70" y="48" width="860" height="35" rx="8" fill="url(#g1)" opacity="0.9"/>
+        <text x="500" y="70" fill="#fff" font-size="13" font-weight="600" text-anchor="middle">Vue 3 + TypeScript + Vite + Pinia + Vue Router</text>
+        <line x1="500" y1="90" x2="500" y2="110" stroke="#475569" stroke-width="2" stroke-dasharray="5,3"/>
+        <text x="520" y="103" fill="#64748b" font-size="10" font-family="Inter">HTTP / REST API</text>
+        <rect x="50" y="110" width="900" height="70" rx="12" fill="#1e293b" stroke="#334155" stroke-width="2"/>
+        <text x="70" y="132" fill="#94a3b8" font-size="13" font-family="Inter">后端 — aips-api</text>
+        <rect x="70" y="138" width="860" height="35" rx="8" fill="url(#g2)" opacity="0.9"/>
+        <text x="500" y="160" fill="#fff" font-size="13" font-weight="600" text-anchor="middle">FastAPI + Pillow + OpenCV — 图像处理服务</text>
+        <line x1="500" y1="180" x2="500" y2="200" stroke="#475569" stroke-width="2" stroke-dasharray="5,3"/>
+        <rect x="50" y="200" width="900" height="60" rx="12" fill="#1e293b" stroke="#334155" stroke-width="2"/>
+        <text x="70" y="222" fill="#94a3b8" font-size="13" font-family="Inter">存储</text>
+        <rect x="70" y="228" width="860" height="25" rx="8" fill="url(#g3)" opacity="0.8"/>
+        <text x="500" y="244" fill="#fff" font-size="12" font-weight="600" text-anchor="middle">storage/ — uploads / results / tasks / temp</text>
+      </svg>
+    </div>
+  </section>
+
+  <section id="tech-stack" class="section">
+    <h2 class="section-title">技术栈</h2>
+    <div class="tech-grid">
+      <div class="tech-category">
+        <h3>后端</h3>
+        <div class="tech-tags">
+          <span class="tech-tag">Python</span>
+          <span class="tech-tag">FastAPI</span>
+          <span class="tech-tag">Pillow</span>
+          <span class="tech-tag">OpenCV</span>
+        </div>
+      </div>
+      <div class="tech-category">
+        <h3>前端</h3>
+        <div class="tech-tags">
+          <span class="tech-tag">Vue 3</span>
+          <span class="tech-tag">TypeScript</span>
+          <span class="tech-tag">Vite</span>
+          <span class="tech-tag">Pinia</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="structure" class="section">
+    <h2 class="section-title">目录结构</h2>
+    <div class="tree-container">
+      <details open class="tree-node">
+        <summary>📁 aips/</summary>
+        <div class="tree-children">
+          <div class="tree-leaf">📁 aips-api/ — FastAPI 图像处理服务</div>
+          <div class="tree-leaf">📁 aips-web/ — Vue 3 工作台和结果页</div>
+          <div class="tree-leaf">📁 docs/ — 项目文档</div>
+          <div class="tree-leaf">📄 init-env.py — 环境初始化脚本</div>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <section id="quickstart" class="section">
+    <h2 class="section-title">快速开始</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">1</div>
+        <div>
+          <h3>生成环境配置</h3>
+          <div class="code-block"><span class="code-lang">bash</span><pre><code>python init-env.py</code></pre></div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <div>
+          <h3>启动后端</h3>
+          <div class="code-block"><span class="code-lang">bash</span><pre><code>cd aips-api &amp;&amp; pip install -r requirements.txt &amp;&amp; uvicorn main:app --reload</code></pre></div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <div>
+          <h3>启动前端</h3>
+          <div class="code-block"><span class="code-lang">bash</span><pre><code>cd aips-web &amp;&amp; npm install &amp;&amp; npm run dev</code></pre></div>
+        </div>
+      </div>
+    </div>
+    <div class="access-table">
+      <table>
+        <thead><tr><th>服务</th><th>地址</th></tr></thead>
+        <tbody>
+          <tr><td>后端 API</td><td>http://127.0.0.1:8000</td></tr>
+          <tr><td>前端</td><td>http://localhost:5173</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="docs" class="section">
+    <h2 class="section-title">文档索引</h2>
+    <div class="doc-list">
+      <a href="./README.md" class="doc-link">📄 README.md — 项目说明</a>
+      <a href="./CONTRIBUTING.md" class="doc-link">📄 CONTRIBUTING.md — 贡献指南</a>
+      <a href="./CHANGELOG.md" class="doc-link">📄 CHANGELOG.md — 更新日志</a>
+      <a href="./LICENSE" class="doc-link">📄 LICENSE — MIT 许可证</a>
+    </div>
+  </section>
+
+  <section class="section license-section">
+    <h2 class="section-title">许可证</h2>
+    <p>本项目基于 <a href="https://opensource.org/licenses/MIT" target="_blank">MIT License</a> 开源。© 2026 LPK3215</p>
+  </section>
+
+  <button id="backToTop" class="back-to-top" title="返回顶部">↑</button>
+  <footer class="footer"><p>Generated on 2026-09-08 · AIPS v1.0.0</p></footer>
+  <script src="./script.js"></script>
+</body>
+</html>
